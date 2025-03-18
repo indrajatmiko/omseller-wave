@@ -33,11 +33,26 @@
         public $perPage = 5;
         public $page = 1;
         public $kategoriProduk = [];
+        public $tipePenjual = 'non_star'; // Tambahkan property untuk tipe penjual
 
         public function mount()
         {
-            // Ambil data dari file JSON
-            $path = public_path('data/kategori_produk.json');
+            $this->loadKategoriProduk();
+        }
+
+        public function updatedTipePenjual()
+        {
+            $this->selectedKategori = 0;
+            $this->loadKategoriProduk();
+        }
+
+        private function loadKategoriProduk()
+        {
+            $filename = $this->tipePenjual === 'mall' 
+                ? 'kategori_produk_mall.json' 
+                : 'kategori_produk.json';
+            
+            $path = public_path('data/' . $filename);
             $this->kategoriProduk = json_decode(file_get_contents($path), true);
         }
 
@@ -185,6 +200,29 @@
                 </div>
 
                 <form class="space-y-4 mt-6" wire:submit.prevent="calculateMargin">
+                    <div class="mb-6">
+                        <label class="block mb-2 text-sm font-medium text-gray-700">Tipe Penjual</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center space-x-2">
+                                <input 
+                                    type="radio" 
+                                    value="non_star" 
+                                    wire:model.live="tipePenjual" 
+                                    class="form-radio text-black focus:ring-black"
+                                >
+                                <span class="text-sm">Penjual Non Star & Star Seller</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input 
+                                    type="radio" 
+                                    value="mall" 
+                                    wire:model.live="tipePenjual" 
+                                    class="form-radio text-black focus:ring-black"
+                                >
+                                <span class="text-sm">Penjual Mall</span>
+                            </label>
+                        </div>
+                    </div>
                     <div class="flex flex-row">
                         <div class="basis-1/3 mr-3">
                             <label for="harga_modal" class="block mb-2 text-sm font-medium text-gray-700">Harga Modal</label>
@@ -217,11 +255,21 @@
                                 class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-black focus:ring-opacity-50"
                             >
                                 <option value="0">Pilih Kategori Produk</option>
+                                @if($tipePenjual === 'non_star')
                                     <option value="8">Kategori A</option>
                                     <option value="7.5">Kategori B</option>
                                     <option value="5.75">Kategori C</option>
                                     <option value="4.25">Kategori D</option>
                                     <option value="2.5">Kategori E</option>
+                                @else
+                                    <option value="10.2">Kategori A</option>
+                                    <option value="9.7">Kategori B</option>
+                                    <option value="7.2">Kategori C</option>
+                                    <option value="6.2">Kategori D</option>
+                                    <option value="5.2">Kategori E</option>
+                                    <option value="3.2">Kategori F</option>
+                                    <option value="2.5">Kategori G</option>
+                                @endif
                             </select>
                         </div>
                         <div class="basis-1/3 mr-3">
@@ -238,7 +286,13 @@
                             <div class="fixed inset-0 flex items-center justify-center bg-gray-700 bg-opacity-50 backdrop-blur-sm">
                                 <div class="bg-white p-6 rounded-lg shadow-lg">
                                     <div class="flex justify-between items-center mb-4">
-                                        <h2 class="text-lg font-bold">Rincian Kategori Produk Penjual Non-Star dan Star/Star+</h2>
+                                        <h2 class="text-lg font-bold">
+                                            @if($tipePenjual === 'mall')
+                                                Rincian Kategori Produk Penjual Mall
+                                            @else
+                                                Rincian Kategori Produk Penjual Non-Star dan Star/Star+
+                                            @endif
+                                        </h2>
                                         <button class="px-4 py-2 bg-red-600 text-white rounded" wire:click="$set('showModal', false)">
                                             Tutup
                                         </button>
