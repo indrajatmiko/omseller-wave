@@ -20,6 +20,7 @@
         "lab404/laravel-impersonate": "^1.7.5",
         "laravel/folio": "^1.1",
         "laravel/framework": "^11.0",
+        "laravel/pail": "^1.2",
         "laravel/tinker": "^2.7",
         "laravel/ui": "^4.5",
         "livewire/livewire": "^3.0",
@@ -72,6 +73,10 @@
             "@php artisan package:discover",
             "@php artisan storage:link",
             "@php artisan filament:upgrade"
+        ],
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail\" \"npm run dev\" --names=server,queue"
         ]
     },
     "config": {
