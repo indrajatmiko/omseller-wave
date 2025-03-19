@@ -31,10 +31,10 @@
 
                 <div class="flex flex-col justify-start items-center px-4 space-y-1.5 w-full h-full text-slate-600 dark:text-zinc-400">
                     <x-app.sidebar-link href="/dashboard" icon="phosphor-house" :active="Request::is('dashboard')">Dashboard</x-app.sidebar-link>
-                    <x-app.sidebar-dropdown text="Kalkulator Margin" icon="phosphor-stack" id="kalkulators_dropdown" :active="(Request::is('kalkulators'))" :open="(Request::is('kalkulator-margin-shopee') || Request::is('kalkulator-margin-tiktok') || Request::is('kalkulator-margin-tokopedia')) ? '1' : '0'">
-                        <x-app.sidebar-link href="/kalkulator-margin-shopee" icon="phosphor-cube" :active="(Request::is('kalkulator-margin-shopee'))">Shopee</x-app.sidebar-link>
-                        <x-app.sidebar-link href="/kalkulator-margin-tiktok" icon="phosphor-cube" :active="(Request::is('kalkulator-margin-tiktok'))">Tiktok</x-app.sidebar-link>
-                        <x-app.sidebar-link href="/kalkulator-margin-tokopedia" icon="phosphor-cube" :active="(Request::is('kalkulator-margin-tokopedia'))">Tokopedia</x-app.sidebar-link>
+                    <x-app.sidebar-dropdown text="Kalkulator Margin" icon="phosphor-calculator" id="kalkulators_dropdown" :active="(Request::is('kalkulators'))" :open="(Request::is('kalkulator-margin-shopee') || Request::is('kalkulator-margin-tiktok') || Request::is('kalkulator-margin-tokopedia')) ? '1' : '0'">
+                        <x-app.sidebar-link href="/kalkulator-margin-shopee" icon="phosphor-bag" :active="(Request::is('kalkulator-margin-shopee'))">Shopee</x-app.sidebar-link>
+                        <x-app.sidebar-link href="/kalkulator-margin-tiktok" icon="phosphor-tiktok-logo" :active="(Request::is('kalkulator-margin-tiktok'))">Tiktok</x-app.sidebar-link>
+                        <x-app.sidebar-link href="/kalkulator-margin-tokopedia" icon="phosphor-storefront" :active="(Request::is('kalkulator-margin-tokopedia'))">Tokopedia</x-app.sidebar-link>
                     </x-app.sidebar-dropdown>
                     <x-app.sidebar-link onclick="event.preventDefault(); new FilamentNotification().title('Modify this button inside of sidebar.blade.php').send()" icon="phosphor-pencil-line" active="false">Produk - Hitung Margin</x-app.sidebar-link>
                     <x-app.sidebar-link  onclick="event.preventDefault(); new FilamentNotification().title('Modify this button inside of sidebar.blade.php').send()" icon="phosphor-users" active="false">Users</x-app.sidebar-link>

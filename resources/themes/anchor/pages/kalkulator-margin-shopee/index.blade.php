@@ -1,6 +1,6 @@
 <?php
     use function Laravel\Folio\{middleware, name};
-    use App\Models\Project;
+    use App\Models\KalkulatorShopee;
     use Livewire\Volt\Component;
 
     use Filament\Forms\Components\RichEditor;
@@ -33,7 +33,8 @@
         public $perPage = 5;
         public $page = 1;
         public $kategoriProduk = [];
-        public $tipePenjual = 'non_star'; // Tambahkan property untuk tipe penjual
+        public $tipePenjual = 'non_star';
+        public $q_kalkulator;
 
         public function mount()
         {
@@ -136,6 +137,11 @@
 
         public function calculateMargin()
         {
+            $this->q_kalkulator = auth()->user()->kalkulatorShopees()->get()->count('hitung');
+            if($this->q_kalkulator < 3) {
+                auth()->user()->kalkulatorShopees()->create(['hitung' => 1]);
+            }
+
             // Konversi format Rupiah ke angka (menghapus semua karakter non-digit)
             $harga_modal = (float) preg_replace('/\D/', '', $this->harga_modal);
             $harga_jual = (float) preg_replace('/\D/', '', $this->harga_jual);
@@ -191,17 +197,17 @@
     @volt('kalkulator-margin-shopee')
         <div> <!-- Elemen root tunggal yang membungkus semua konten -->
             <x-app.container>
-                <div class="flex items-center justify-between mb-">
+                <div class="flex items-center justify-between mb-4">
                     <x-app.heading
                             title="Kalkulator Margin Shopee"
-                            description="Kalkulator untuk menghitung berapa margin keuntungan dari produk yang akan Anda jual di Marketplace Shopee. Data per 1 Januari 2025"
-                            :border="false"
+                            description="Kalkulator untuk menghitung berapa margin keuntungan dari produk yang akan Anda jual di Marketplace Shopee. Data per 1 Januari 2025."
+                            :border="true"
                         />
                 </div>
 
                 <form class="space-y-4 mt-6" wire:submit.prevent="calculateMargin">
                     <div class="mb-6">
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Tipe Penjual</label>
+                        <label class="block mb-2 text-sm font-bold text-gray-700">Tipe Penjual</label>
                         <div class="flex gap-4">
                             <label class="flex items-center space-x-2">
                                 <input 
@@ -218,6 +224,21 @@
                                     value="mall" 
                                     wire:model.live="tipePenjual" 
                                     class="form-radio text-black focus:ring-black"
+                                    @if(auth()->user()->hasRole('registered') OR auth()->user()->hasRole('basic'))
+                                        onclick="event.preventDefault(); new FilamentNotification()
+                                            .title('Hanya untuk User Premium dan Pro!')
+                                            .danger()
+                                            .body('Cuman seharga Rp 100.000 per bulan, kamu bisa akses fitur ini dan lainnya. Langsung upgrade sekarang!')
+                                            .actions([
+                                                new FilamentNotificationAction('Ya, Upgrade Sekarang')
+                                                    .button()
+                                                    .url('/settings/subscription')
+                                                    .openUrlInNewTab(),
+                                                new FilamentNotificationAction('Nanti dulu')
+                                                    .color('gray'),
+                                            ])
+                                            .send()"
+                                    @endif
                                 >
                                 <span class="text-sm">Penjual Mall</span>
                             </label>
@@ -225,7 +246,7 @@
                     </div>
                     <div class="flex flex-row">
                         <div class="basis-1/3 mr-3">
-                            <label for="harga_modal" class="block mb-2 text-sm font-medium text-gray-700">Harga Modal</label>
+                            <label for="harga_modal" class="block mb-2 text-sm font-bold text-gray-700">Harga Modal</label>
                             <input
                                 type="text"
                                 id="harga_modal"
@@ -236,7 +257,7 @@
                             @error('harga_modal') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                         </div>
                         <div class="basis-1/3 mr-3">
-                            <label for="harga_jual" class="block mb-2 text-sm font-medium text-gray-700">Harga Jual</label>
+                            <label for="harga_jual" class="block mb-2 text-sm font-bold text-gray-700">Harga Jual</label>
                             <input
                                 type="text"
                                 id="harga_jual"
@@ -248,7 +269,7 @@
                     </div>
                     <div class="flex flex-row">
                         <div class="basis-1/3 mr-3">
-                            <label for="kategori-select" class="block mb-2 text-sm font-medium text-gray-700">Kategori Produk</label>
+                            <label for="kategori-select" class="block mb-2 text-sm font-bold text-gray-700">Kategori Produk</label>
                             <select 
                                 id="kategori-select" 
                                 wire:model="selectedKategori"
@@ -330,7 +351,7 @@
                                                 <tr class="hover:bg-gray-100">
                                                     {{-- <td class="border px-4 py-2">{{ $row['main_category'] }}</td> --}}
                                                     <td class="border px-4 py-2">{{ $row['main_category'] }}</td>
-                                                    <td class="border px-4 py-2">{{ $row['subcategory'] }} : {{ \Illuminate\Support\Str::limit($row['description'], 100) }}</td>
+                                                    <td class="border px-4 py-2"><strong>{{ $row['subcategory'] }} : </strong>{{ \Illuminate\Support\Str::limit($row['description'], 100) }}</td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -354,7 +375,7 @@
                     <div>
                         <div class="flex items-center mb-4">
                             <input id="gratis_ongkir_xtra" type="checkbox" wire:model="gratis_ongkir_xtra" class="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded-sm focus:ring-black focus:ring-offset-gray-800 focus:ring-2">
-                            <label for="gratis_ongkir_xtra" class="ml-2 text-sm font-medium text-gray-900">Gratis Ongkir Xtra</label>
+                            <label for="gratis_ongkir_xtra" class="ml-2 text-sm font-bold text-gray-900">Gratis Ongkir Xtra</label>
                         </div>
                         @if($gratisOngkirXtraLimited)
                         <div class="text-sm text-blue-600 mt-1 ml-6">
@@ -366,7 +387,7 @@
                     <div>
                         <div class="flex items-center mb-4">
                             <input id="promo_xtra" type="checkbox" wire:model="promo_xtra" class="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded-sm focus:ring-black focus:ring-offset-gray-800 focus:ring-2">
-                            <label for="promo_xtra" class="ml-2 text-sm font-medium text-gray-900">Promo Xtra</label>
+                            <label for="promo_xtra" class="ml-2 text-sm font-bold text-gray-900">Promo Xtra</label>
                         </div>
                         @if($promoXtraLimited)
                         <div class="text-sm text-blue-600 mt-1 ml-6">
@@ -375,25 +396,41 @@
                         @endif
                     </div>
                     <div>
-                        <button type="submit" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50">
+                        <button type="submit" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50" 
+                            @if($this->q_kalkulator == 3 AND auth()->user()->hasRole('registered'))
+                                onclick="event.preventDefault(); new FilamentNotification()
+                                    .title('Hanya untuk User Premium dan Pro!')
+                                    .danger()
+                                    .body('Cuman seharga Rp 100.000 per bulan, kamu bisa akses fitur ini dan lainnya. Langsung upgrade sekarang!')
+                                    .actions([
+                                        new FilamentNotificationAction('Ya, Upgrade Sekarang')
+                                            .button()
+                                            .url('/settings/subscription')
+                                            .openUrlInNewTab(),
+                                        new FilamentNotificationAction('Nanti dulu')
+                                            .color('gray'),
+                                    ])
+                                    .send()"
+                            @endif>
                             Hitung Margin
                         </button>
                     </div>
                     <div class="flex flex-row mt-4">
                         <div class="basis-1/3 mr-3">
-                            <label for="margin" class="block mb-2 text-sm font-medium text-gray-700">Persentase Keuntungan</label>
+                            <label for="margin" class="block mb-2 text-sm font-bold text-gray-700">Persentase Keuntungan</label>
                             <input type="text" id="margin" wire:model="margin" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-black focus:ring-opacity-50" readonly>
                             @error('margin') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                         </div>
                         <div class="basis-1/3 mr-3">
-                            <label for="keuntungan_rupiah" class="block mb-2 text-sm font-medium text-gray-700">Keuntungan</label>
+                            <label for="keuntungan_rupiah" class="block mb-2 text-sm font-bold text-gray-700">Keuntungan</label>
                             <input type="text" id="keuntungan_rupiah" wire:model="keuntungan_rupiah" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-black focus:ring-opacity-50" readonly>
                         </div>
                     </div>
-                    <div class="text-sm italic text-black mt-1 ml-6">
+                    <div class="text-sm italic text-red-500 mt-1 ml-6">
                         <strong><u>Catatan:</u></strong>
                         <ol>
                             <li>Belum termasuk biaya operasional toko.</li>
+                            <li>Belum termasuk biaya Diskon dan Voucher toko.</li>
                             <li>Shopee berhak sewaktu-waktu mengubah, menambah, atau memodifikasi Syarat & Ketentuan tanpa pemberitahuan terlebih dahulu.</li>
                         </ol>
                     </div>

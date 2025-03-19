@@ -1,6 +1,10 @@
 HOWTO :
 1. php artisan make:model NamaMenu --migration
+    https://laravel.com/docs/11.x/migrations#available-column-types
 2. buat file : resources/themes/anchor/pages/NamaMenu/index.blade.php
+
+NGROK :
+1. ngrok http http://127.0.0.1:8000/ --response-header-add='Content-Security-Policy: upgrade-insecure-requests'
 
 DONE :
 1. konfigurasi email menggunakan https://mailtrap.io/ dan setting .env

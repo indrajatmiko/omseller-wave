@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 use Wave\User as WaveUser;
 use Illuminate\Notifications\Notifiable;
 use Wave\Traits\HasProfileKeyValues;
+use App\Models\KalkulatorShopee;
 
 class User extends WaveUser
 {
@@ -66,5 +67,10 @@ class User extends WaveUser
             // Assign the default role
             $user->assignRole( config('wave.default_user_role', 'registered') );
         });
+    }
+
+    public function kalkulatorShopees()
+    {
+        return $this->hasMany(KalkulatorShopee::class);
     }
 }
