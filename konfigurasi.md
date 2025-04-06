@@ -2,6 +2,8 @@ HOWTO :
 1. php artisan make:model NamaMenu --migration
     https://laravel.com/docs/11.x/migrations#available-column-types
 2. buat file : resources/themes/anchor/pages/NamaMenu/index.blade.php
+3. php artisan vendor:publish --provider="Maatwebsite\Excel\ExcelServiceProvider" --tag=config
+
 
 NGROK :
 1. ngrok http http://127.0.0.1:8000/ --response-header-add='Content-Security-Policy: upgrade-insecure-requests'
@@ -19,3 +21,4 @@ TODO :
 This is your customer's successful purchase welcome screen. After a user upgrades their account they will be redirected to this page after a successful transaction.
 You can modify this view inside your theme folder at pages/subscription/welcome.
 3. Manage your subscription by clicking below. Edit this page from the following file: resources/views/anchor/pages/settings/subscription.blade.php
+4. hapus semua file pakai cron setiap dini hari

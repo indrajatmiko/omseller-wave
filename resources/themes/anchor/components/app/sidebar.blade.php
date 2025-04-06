@@ -36,6 +36,19 @@
                         <x-app.sidebar-link href="/kalkulator-margin-tiktok" icon="phosphor-tiktok-logo" :active="(Request::is('kalkulator-margin-tiktok'))">Tiktok</x-app.sidebar-link>
                         <x-app.sidebar-link href="/kalkulator-margin-tokopedia" icon="phosphor-storefront" :active="(Request::is('kalkulator-margin-tokopedia'))">Tokopedia</x-app.sidebar-link>
                     </x-app.sidebar-dropdown>
+                    
+                    <x-app.sidebar-dropdown text="Voucher" icon="phosphor-calculator" id="vouchers_dropdown" :active="(Request::is('vouchers'))" :open="(Request::is('voucher-toko') || Request::is('voucher-produk') || Request::is('voucher-ikuti')) ? '1' : '0'">
+                        <x-app.sidebar-link href="/voucher-toko" icon="phosphor-bag" :active="(Request::is('voucher-toko'))">Toko</x-app.sidebar-link>
+                        <x-app.sidebar-link href="/voucher-produk" icon="phosphor-tiktok-logo" :active="(Request::is('voucher-produk'))">Produk</x-app.sidebar-link>
+                        <x-app.sidebar-link href="/voucher-ikuti" icon="phosphor-storefront" :active="(Request::is('voucher-ikuti'))">Ikuti Toko</x-app.sidebar-link>
+                    </x-app.sidebar-dropdown>
+                    
+                    <x-app.sidebar-dropdown text="Performa Toko" icon="phosphor-chart-line" id="datacenters_dropdown" :active="(Request::is('datacenters'))" :open="(Request::is('datacenter-organik-iklan') || Request::is('datacenter-produk') || Request::is('datacenter-ikuti')) ? '1' : '0'">
+                        <x-app.sidebar-link href="/datacenter-organik-iklan" icon="phosphor-traffic-signal" :active="(Request::is('datacenter-organik-iklan'))">Organik vs Iklan</x-app.sidebar-link>
+                        <x-app.sidebar-link href="/datacenter-produk" icon="phosphor-tiktok-logo" :active="(Request::is('datacenter-produk'))">Produk</x-app.sidebar-link>
+                        <x-app.sidebar-link href="/datacenter-ikuti" icon="phosphor-storefront" :active="(Request::is('datacenter-ikuti'))">Ikuti Toko</x-app.sidebar-link>
+                    </x-app.sidebar-dropdown>
+                    
                     <x-app.sidebar-link onclick="event.preventDefault(); new FilamentNotification().title('Modify this button inside of sidebar.blade.php').send()" icon="phosphor-pencil-line" active="false">Produk - Hitung Margin</x-app.sidebar-link>
                     <x-app.sidebar-link  onclick="event.preventDefault(); new FilamentNotification().title('Modify this button inside of sidebar.blade.php').send()" icon="phosphor-users" active="false">Users</x-app.sidebar-link>
                 </div>

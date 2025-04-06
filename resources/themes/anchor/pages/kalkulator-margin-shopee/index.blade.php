@@ -302,74 +302,61 @@
                         </div>
                     </div>
                     <div>
-                        <!-- Modal Popup dengan background blur -->
                         @if ($showModal)
-                            <div class="fixed inset-0 flex items-center justify-center bg-gray-700 bg-opacity-50 backdrop-blur-sm">
-                                <div class="bg-white p-6 rounded-lg shadow-lg">
-                                    <div class="flex justify-between items-center mb-4">
-                                        <h2 class="text-lg font-bold">
-                                            @if($tipePenjual === 'mall')
-                                                Rincian Kategori Produk Penjual Mall
-                                            @else
-                                                Rincian Kategori Produk Penjual Non-Star dan Star/Star+
-                                            @endif
-                                        </h2>
-                                        <button class="px-4 py-2 bg-red-600 text-white rounded" wire:click="$set('showModal', false)">
-                                            Tutup
-                                        </button>
-                                    </div>
-                                    
-                                    <!-- Input pencarian dan tombol Cari -->
-                                    <div class="flex mb-4">
-                                        <input type="text" class="w-full p-2 border rounded" placeholder="Cari kategori produk..." wire:model.defer="tempSearch">
-                                        <button class="ml-2 px-4 py-2 bg-green-600 text-white rounded" wire:click="applySearch">
-                                            Cari
-                                        </button>
-                                    </div>
-                    
-                                    {{-- <!-- Dropdown untuk memilih jumlah data per halaman -->
-                                    <div class="mb-4">
-                                        <label for="perPage" class="mr-2">Tampilkan per halaman:</label>
-                                        <select id="perPage" class="p-2 border rounded" wire:model="perPage">
-                                            <option value="3">3</option>
-                                            <option value="5">5</option>
-                                            <option value="10">10</option>
-                                        </select>
-                                    </div> --}}
-                    
-                                    <!-- Tabel dengan 3 kolom: Kategori, Sub Kategori, Deskripsi -->
-                                    <table class="w-full border-collapse border border-gray-300">
-                                        <thead class="bg-gray-200">
-                                            <tr>
-                                                {{-- <th class="border px-4 py-2">Kategori</th> --}}
-                                                <th class="border px-4 py-2">Kategori</th>
-                                                <th class="border px-4 py-2">Rincian</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($this->paginatedRows as $row)
-                                                <tr class="hover:bg-gray-100">
-                                                    {{-- <td class="border px-4 py-2">{{ $row['main_category'] }}</td> --}}
-                                                    <td class="border px-4 py-2">{{ $row['main_category'] }}</td>
-                                                    <td class="border px-4 py-2"><strong>{{ $row['subcategory'] }} : </strong>{{ \Illuminate\Support\Str::limit($row['description'], 100) }}</td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                    
-                                    <!-- Kontrol Pagination -->
-                                    <div class="flex justify-between items-center mt-4">
-                                        <button class="px-4 py-2 bg-gray-600 text-black rounded" wire:click="previousPage" @if($page <= 1) disabled @endif>
-                                            Previous
-                                        </button>
-                                        <span>Halaman {{ $page }} dari {{ $this->paginatedRows->lastPage() }}</span>
-                                        <button class="px-4 py-2 bg-gray-600 text-black rounded" wire:click="nextPage" @if($page >= $this->paginatedRows->lastPage()) disabled @endif>
-                                            Next
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
+    <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm">
+        <div class="bg-gray-900 p-6 rounded-lg shadow-lg text-white">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-white">
+                    @if($tipePenjual === 'mall')
+                        Rincian Kategori Produk Penjual Mall
+                    @else
+                        Rincian Kategori Produk Penjual Non-Star dan Star/Star+
+                    @endif
+                </h2>
+                <button class="px-4 py-2 bg-red-600 text-white rounded" wire:click="$set('showModal', false)">
+                    Tutup
+                </button>
+            </div>
+            
+            <!-- Input pencarian dan tombol Cari -->
+            <div class="flex mb-4">
+                <input type="text" class="w-full p-2 border rounded bg-gray-800 text-white" placeholder="Cari kategori produk..." wire:model.defer="tempSearch">
+                <button class="ml-2 px-4 py-2 bg-green-600 text-white rounded" wire:click="applySearch">
+                    Cari
+                </button>
+            </div>
+
+            <!-- Tabel dengan 2 kolom: Kategori, Rincian -->
+            <table class="w-full border-collapse border border-gray-300 text-white">
+                <thead class="bg-gray-700">
+                    <tr>
+                        <th class="border px-4 py-2">Kategori</th>
+                        <th class="border px-4 py-2">Rincian</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($this->paginatedRows as $row)
+                        <tr class="hover:bg-gray-800">
+                            <td class="border px-4 py-2">{{ $row['main_category'] }}</td>
+                            <td class="border px-4 py-2"><strong>{{ $row['subcategory'] }} : </strong>{{ \Illuminate\Support\Str::limit($row['description'], 100) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+            <!-- Kontrol Pagination -->
+            <div class="flex justify-between items-center mt-4">
+                <button class="px-4 py-2 bg-gray-600 text-white rounded" wire:click="previousPage" @if($page <= 1) disabled @endif>
+                    Previous
+                </button>
+                <span class="text-white">Halaman {{ $page }} dari {{ $this->paginatedRows->lastPage() }}</span>
+                <button class="px-4 py-2 bg-gray-600 text-white rounded" wire:click="nextPage" @if($page >= $this->paginatedRows->lastPage()) disabled @endif>
+                    Next
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
                     </div>
                     
                     <div>
