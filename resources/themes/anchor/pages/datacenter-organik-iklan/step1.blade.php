@@ -7,6 +7,7 @@
     use Filament\Forms\Components\TimePicker;
     use Livewire\Attributes\Session;
     use Carbon\Carbon;
+    use App\Models\PerformaToko;
 
     middleware('auth');
     name('datacenter-organik-iklan.step1');
@@ -25,19 +26,31 @@
 
         public function getAvailableMonths(): array
         {
+            $currentYear = Carbon::now()->year;
             $currentMonth = Carbon::now()->month;
-            $months = [];
-
-            if ($this->tahun == Carbon::now()->year) {
-                for ($i = 1; $i < $currentMonth; $i++) {
-                    $months[$i] = Carbon::create(null, $i)->translatedFormat('F', 'id'); // Bulan Indonesia
-                }
-            } else {
-                for ($i = 1; $i <= 12; $i++) {
-                    $months[$i] = Carbon::create(null, $i)->translatedFormat('F', 'id'); // Bulan Indonesia
-                }
+            
+            // Generate semua bulan dalam setahun
+            $allMonths = [];
+            for ($i = 1; $i <= 12; $i++) {
+                $allMonths[$i] = Carbon::createFromDate(null, $i, 1)->translatedFormat('F');
             }
-            return $months;
+
+            // Filter bulan yang valid berdasarkan tahun
+            if ($this->tahun == $currentYear) {
+                $allMonths = array_slice($allMonths, 0, $currentMonth - 1, true);
+            }
+
+            // Ambil existing months dengan single query
+            $existingMonths = cache()->remember(
+                key: 'user_months:'.auth()->id().':'.$this->tahun,
+                ttl: 300, // 5 menit cache
+                callback: fn() => PerformaToko::where('user_id', auth()->id())
+                    ->where('tahun', $this->tahun)
+                    ->pluck('bulan')
+                    ->toArray()
+            );
+
+            return array_diff_key($allMonths, array_flip($existingMonths));
         }
 
         public function updatedTahun(): void
@@ -48,8 +61,21 @@
         public function step2(): mixed
         {
             $validated = $this->validate([
-                'bulan' => ['required', 'not_in:0'], // Validasi bulan, tidak boleh 0
-                'tahun' => ['required']
+            'bulan' => [
+                'required', 
+                'not_in:0',
+                function ($attribute, $value, $fail) {
+                    $exists = PerformaToko::where('user_id', auth()->id())
+                        ->where('tahun', $this->tahun)
+                        ->where('bulan', $value)
+                        ->exists();
+                    
+                    if ($exists) {
+                        $fail('Data untuk periode ini sudah ada.');
+                    }
+                }
+            ],
+            'tahun' => ['required']
             ], [
                 'bulan.not_in' => 'Pilih bulan terlebih dahulu.',
             ]);
@@ -93,32 +119,23 @@
                         <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Silakan pilih bulan dan tahun laporan performa toko yang ingin dilihat.</p>
                         <div class="flex flex-row mt-2">
                             <div class="basis-1/8 mr-3">
-                                <select 
-                                        id="tahun" 
-                                        wire:model="tahun"
-                                        class="block mt-1 border-gray-300 rounded-md shadow-sm focus:border-black focus:ring-opacity-50"
-                                        wire:change="$refresh" // Tambahkan wire:change="$refresh"
-                                    >
-                                    <option value="0">Pilih Tahun</option>
-                                    @foreach($availableYears as $year)
-                                        <option value="{{ $year }}" @if ($tahun == $year) selected @endif>{{ $year }}</option>
+                                <select wire:model="tahun" wire:change="$refresh">
+                                    {{-- Loop static untuk tahun --}}
+                                    @foreach([2024, 2025] as $year)
+                                        <option value="{{ $year }}">{{ $year }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="basis-1/8 mr-3">
-                                <select 
-                                    id="bulan" 
-                                    wire:model="bulan"
-                                    class="block mt-1 border-gray-300 rounded-md shadow-sm focus:border-black focus:ring-opacity-50"
-                                >
-                                    <option value="0">Pilih Bulan</option>
-                                    @foreach($this->getAvailableMonths() as $monthNumber => $monthName)
-                                        <option value="{{ $monthNumber }}" @if($bulan == $monthNumber) selected @endif>{{ $monthName }}</option>
+                                <select wire:model="bulan">
+                                    @foreach($this->getAvailableMonths() as $num => $name)
+                                        <option value="{{ $num }}">{{ $name }}</option>
                                     @endforeach
                                 </select>
                                 @error('bulan') <span class="error text-red-500">{{ $message }}</span> @enderror
                             </div>
                         </div>
+                        <small class="text-red-600">catatan: jika bulan tidak muncul, maka laporan bulan tersebut sudah diinput.</small>
                         </div>
                     </div>
                     <div class="relative w-full">
