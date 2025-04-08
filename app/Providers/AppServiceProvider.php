@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -57,6 +58,10 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return true;
+        });
+
+        Blade::directive('moneyShort', function ($expression) {
+            return "<?php echo \App\Helpers\NumberFormatter::shortMoney($expression); ?>";
         });
     }
 

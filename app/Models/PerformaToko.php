@@ -49,4 +49,10 @@ class PerformaToko extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function scopeTahunBulan($query, $tahun, $bulan)
+    {
+        return $query->whereYear('created_at', $tahun)
+            ->whereMonth('created_at', $bulan);
+    }
 }

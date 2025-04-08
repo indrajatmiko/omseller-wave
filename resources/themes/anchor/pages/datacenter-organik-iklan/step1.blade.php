@@ -14,21 +14,39 @@
 
     new class extends Component
     {
-        public int $bulan;
+        public int $bulan = 0;
         public int $tahun;
         public array $availableYears = [2024, 2025]; // Daftar tahun yang tersedia
+        public bool $isSubmitDisabled = true;
 
         public function mount(): void
         {
             $this->tahun = now()->year;
-            $this->bulan = now()->month;
+            $this->bulan = 0;
+            $this->updateSubmitStatus();
+        }
+
+        public function updatedBulan(): void
+        {
+            $this->updateSubmitStatus();
+        }
+
+        public function updatedTahun(): void
+        {
+            $this->bulan = 0; // Reset bulan saat tahun berubah
+            $this->updateSubmitStatus();
+        }
+
+        public function updateSubmitStatus(): void
+        {
+            $this->isSubmitDisabled = $this->bulan == 0;
         }
 
         public function getAvailableMonths(): array
         {
             $currentYear = Carbon::now()->year;
             $currentMonth = Carbon::now()->month;
-            
+
             // Generate semua bulan dalam setahun
             $allMonths = [];
             for ($i = 1; $i <= 12; $i++) {
@@ -53,29 +71,24 @@
             return array_diff_key($allMonths, array_flip($existingMonths));
         }
 
-        public function updatedTahun(): void
-        {
-            // Tidak perlu melakukan apa pun di sini, logika penyesuaian bulan sudah ada di getAvailableMonths
-        }
-
         public function step2(): mixed
         {
             $validated = $this->validate([
-            'bulan' => [
-                'required', 
-                'not_in:0',
-                function ($attribute, $value, $fail) {
-                    $exists = PerformaToko::where('user_id', auth()->id())
-                        ->where('tahun', $this->tahun)
-                        ->where('bulan', $value)
-                        ->exists();
-                    
-                    if ($exists) {
-                        $fail('Data untuk periode ini sudah ada.');
+                'bulan' => [
+                    'required',
+                    'not_in:0',
+                    function ($attribute, $value, $fail) {
+                        $exists = PerformaToko::where('user_id', auth()->id())
+                            ->where('tahun', $this->tahun)
+                            ->where('bulan', $value)
+                            ->exists();
+
+                        if ($exists) {
+                            $fail('Data untuk periode ini sudah ada.');
+                        }
                     }
-                }
-            ],
-            'tahun' => ['required']
+                ],
+                'tahun' => ['required']
             ], [
                 'bulan.not_in' => 'Pilih bulan terlebih dahulu.',
             ]);
@@ -119,7 +132,7 @@
                         <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Silakan pilih bulan dan tahun laporan performa toko yang ingin dilihat.</p>
                         <div class="flex flex-row mt-2">
                             <div class="basis-1/8 mr-3">
-                                <select wire:model="tahun" wire:change="$refresh">
+                                <select wire:model="tahun" wire:change="$refresh" wire:key="tahun-select">
                                     {{-- Loop static untuk tahun --}}
                                     @foreach([2024, 2025] as $year)
                                         <option value="{{ $year }}">{{ $year }}</option>
@@ -127,12 +140,17 @@
                                 </select>
                             </div>
                             <div class="basis-1/8 mr-3">
-                                <select wire:model="bulan">
-                                    @foreach($this->getAvailableMonths() as $num => $name)
+                                <select wire:model="bulan" wire:key="bulan-select-{{ $tahun }}">
+                                    <option value="0">Pilih Bulan</option>
+                                    @forelse($this->getAvailableMonths() as $num => $name)
                                         <option value="{{ $num }}">{{ $name }}</option>
-                                    @endforeach
+                                    @empty
+                                        <option disabled>Semua bulan telah diinput</option>
+                                    @endforelse
                                 </select>
-                                @error('bulan') <span class="error text-red-500">{{ $message }}</span> @enderror
+                                @error('bulan') 
+                                    <small class="text-red-600 block mt-1">{{ $message }}</small> 
+                                @enderror
                             </div>
                         </div>
                         <small class="text-red-600">catatan: jika bulan tidak muncul, maka laporan bulan tersebut sudah diinput.</small>
@@ -143,7 +161,27 @@
                         <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
                         </svg>
                         <div class="ml-6">
-                        <h4 class="font-bold text-black">2. Masuk ke Seller Center Shopee</h4>
+                        <h4 class="font-bold text-black">2. Ganti Periode Data</h4>
+                        <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Pilih periode data yang ingin di unduh. Silakan ikuti petunjuk pada gambar dibawah ini.</p>
+                        <img class="mt-2 max-w-xl rounded-lg shadow-xl dark:shadow-gray-800" src="{{ asset('images/shopee') }}/performa-produk-1.webp" alt="">
+                        </div>
+                    </div>
+                    <div class="relative w-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="absolute -top-0.5 z-10 -ml-3.5 h-7 w-7 rounded-full text-black">
+                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                        </svg>
+                        <div class="ml-6">
+                        <h4 class="font-bold text-black">3. Download File</h4>
+                        <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Pilih periode data yang ingin di unduh. Silakan ikuti petunjuk pada gambar dibawah ini.</p>
+                        <img class="mt-2 max-w-xl rounded-lg shadow-xl dark:shadow-gray-800" src="{{ asset('images/shopee') }}/performa-produk-2.webp" alt="">
+                        </div>
+                    </div>
+                    <div class="relative w-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="absolute -top-0.5 z-10 -ml-3.5 h-7 w-7 rounded-full text-black">
+                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                        </svg>
+                        <div class="ml-6">
+                        <h4 class="font-bold text-black">4. Masuk ke Seller Center Shopee</h4>
                         <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Masuk ke menu Performa Toko > Produk > Performa Produk untuk mengunduh file laporan performa produk. Untuk akses lebih cepat, silakan klik tombol dibawah ini.</p>
                         <x-button class="mt-2" tag="a" href="https://seller.shopee.co.id/datacenter/product/performance" target="_blank">Buka Seller Center Shopee</x-button>
                         </div>
@@ -153,29 +191,20 @@
                         <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
                         </svg>
                         <div class="ml-6">
-                        <h4 class="font-bold text-black">3. Ganti Periode Data</h4>
-                        <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Pilih periode data yang ingin di unduh. Silakan ikuti petunjuk pada gambar dibawah ini.</p>
-                        <img class="mt-2" src="{{ asset('images/shopee') }}/performa-produk-1.webp" alt="">
-                        </div>
-                    </div>
-                    <div class="relative w-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="absolute -top-0.5 z-10 -ml-3.5 h-7 w-7 rounded-full text-black">
-                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
-                        </svg>
-                        <div class="ml-6">
-                        <h4 class="font-bold text-black">4. Download File</h4>
-                        <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Pilih periode data yang ingin di unduh. Silakan ikuti petunjuk pada gambar dibawah ini.</p>
-                        <img class="mt-2" src="{{ asset('images/shopee') }}/performa-produk-2.webp" alt="">
-                        </div>
-                    </div>
-                    <div class="relative w-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="absolute -top-0.5 z-10 -ml-3.5 h-7 w-7 rounded-full text-black">
-                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
-                        </svg>
-                        <div class="ml-6">
-                        <h4 class="font-bold text-black">Ayo semangat, masih ada 3 langkah lagi.</h4>
-                        <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Klik tombol selanjutnya untuk menuju ke langkah berikutnya</p>
-                        <button type="submit" class="mt-2 px-4 py-2 bg-black text-white font-bold rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50" ">Selanjutnya</button>
+                            <h4 class="font-bold text-black">Ayo semangat, masih ada 2 langkah lagi.</h4>
+                            <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Klik tombol selanjutnya untuk menuju ke langkah berikutnya</p>
+                            <button 
+                                type="submit" 
+                                class="mt-2 px-4 py-2 bg-black text-white font-bold rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50 disabled:opacity-50"
+                                wire:loading.attr="disabled"
+                                @disabled($isSubmitDisabled)
+                            >
+                                Selanjutnya
+                            </button>
+
+                            @if($isSubmitDisabled)
+                                <small class="text-red-600 block mt-1">Pilih bulan terlebih dahulu sebelum melanjutkan.</small>
+                            @endif
                         </div>
                     </div>
                     </div>

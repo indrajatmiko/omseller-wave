@@ -52,4 +52,10 @@ class PerformaIklan extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function scopeTahunBulan($query, $tahun, $bulan)
+    {
+        return $query->whereYear('tanggal_mulai', $tahun)
+            ->whereMonth('tanggal_mulai', $bulan);
+    }
 }
