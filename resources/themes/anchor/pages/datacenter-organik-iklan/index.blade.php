@@ -5,6 +5,7 @@
     use App\Models\PerformaIklan;
     use Illuminate\Support\Facades\DB;
     use App\Helpers\NumberFormatter;
+    use Muhanz\Shoapi\Facades\Shoapi;
 
     middleware('auth');
     name('datacenter-organik-iklan');
@@ -14,16 +15,25 @@
         public $bulanAktif;
         public $isProcessing = false; // Status proses
         public $progress = 0; // Persentase progress
+        public $bulanTersedia = [];
+        public $wasProcessing = false;
         
         public function mount() {
             $this->bulanAktif = now()->month;
             $this->tahunAktif = now()->year;
             $this->checkProcessingStatus();
+            $this->loadBulanTersedia();
         }
         
         public function checkProcessingStatus() {
-            // Contoh: Periksa status dari database atau queue
+            // Cek status processing
+            $previousStatus = $this->isProcessing;
             $this->isProcessing = DB::table('jobs')->where('status', 'processing')->exists();
+
+            // Jika status berubah dari processing ke selesai
+            if($previousStatus && !$this->isProcessing) {
+                $this->clearBulanCache(); // Bersihkan cache
+            }
 
             // Contoh: Hitung progress (misalnya berdasarkan jumlah job selesai)
             $totalJobs = DB::table('jobs')->count();
@@ -31,118 +41,39 @@
             $this->progress = $totalJobs > 0 ? ($completedJobs / $totalJobs) * 100 : 0;
         }
 
-        public function switchYear($year) {
-            $this->tahunAktif = $year;
-        }
-        
-        public function getSalesData() {
-            $dataToko = PerformaToko::select(
-                    'bulan',
-                    'tahun',
-                    DB::raw('SUM(penjualan_pesanan_siap_dikirim) as total_penjualan'),
-                    DB::raw('0 as penjualan_iklan'),
-                    DB::raw('0 as biaya_iklan')
-                )
-                ->where('tingkat_konversi_pesanan_siap_dikirim', '>', 0)
-                ->where('tahun', $this->tahunAktif)
-                ->groupBy('tahun', 'bulan');
-                
-            $dataIklan = PerformaIklan::select(
-                    'bulan',
-                    'tahun',
-                    DB::raw('0 as total_penjualan'),
-                    DB::raw('SUM(omzet_penjualan) as penjualan_iklan'),
-                    DB::raw('SUM(biaya) as biaya_iklan')
-                )
-                ->where('tahun', $this->tahunAktif)
-                ->groupBy('tahun', 'bulan');
-                
-            return $dataToko->unionAll($dataIklan)
-                ->get()
-                ->groupBy('bulan')
-                ->map(function ($monthData) {
-                    return [
-                        'total_penjualan' => $monthData->sum('total_penjualan'),
-                        'penjualan_iklan' => $monthData->sum('penjualan_iklan'),
-                        'biaya_iklan' => $monthData->sum('biaya_iklan')
-                    ];
-                });
-        }
-        
-        public function calculateMetrics() {
-            $currentData = $this->getSalesData();
-            $prevYearData = $this->getYearData($this->tahunAktif - 1);
-            
-            $metrics = [];
-            
-            foreach ($currentData as $month => $data) {
-                // MoM Calculation
-                $prevMonth = $month - 1;
-                $mom = $prevMonth > 0 && isset($currentData[$prevMonth]) ? 
-                    (($data['total_penjualan'] - $currentData[$prevMonth]['total_penjualan']) / 
-                    $currentData[$prevMonth]['total_penjualan'] * 100) : 0;
-                
-                // YoY Calculation
-                $yoy = isset($prevYearData[$month]) ? 
-                    (($data['total_penjualan'] - $prevYearData[$month]['total_penjualan']) / 
-                    $prevYearData[$month]['total_penjualan'] * 100) : 0;
-                
-                $metrics[$month] = [
-                    'total' => $data['total_penjualan'],
-                    'iklan' => $data['penjualan_iklan'],
-                    'biaya' => $data['biaya_iklan'],
-                    'persen_iklan' => $data['total_penjualan'] ? 
-                        ($data['penjualan_iklan'] / $data['total_penjualan'] * 100) : 0,
-                    'mom' => $mom,
-                    'yoy' => $yoy
-                ];
-            }
-            
-            return $metrics;
-        }
-        
-        protected function getYearData($year) {
-            return Cache::remember("year_data_{$year}", 3600, function () use ($year) {
+        protected function loadBulanTersedia() {
+            $userId = auth()->id();
+            $cacheKey = "bulan_tersedia_{$userId}_{$this->tahunAktif}";
 
+            $this->bulanTersedia = cache()->remember($cacheKey, 60 * 60, function () use ($userId) {
+                return PerformaToko::where('user_id', $userId)
+                    ->where('tahun', $this->tahunAktif)
+                    ->pluck('bulan')
+                    ->toArray();
             });
         }
-        protected function calculateQoQ() {
-            $currentData = $this->getSalesData();
-            $currentMonth = $this->bulanAktif;
-            
-            $quarters = [
-                1 => ['months' => [1,2,3], 'total' => 0, 'iklan' => 0, 'biaya' => 0, 'available' => false],
-                2 => ['months' => [4,5,6], 'total' => 0, 'iklan' => 0, 'biaya' => 0, 'available' => false],
-                3 => ['months' => [7,8,9], 'total' => 0, 'iklan' => 0, 'biaya' => 0, 'available' => false],
-                4 => ['months' => [10,11,12], 'total' => 0, 'iklan' => 0, 'biaya' => 0, 'available' => false],
-            ];
 
-            foreach ($quarters as $q => &$quarter) {
-                $availableMonths = array_filter($quarter['months'], function($m) use ($currentMonth) {
-                    return $m <= $currentMonth;
-                });
-                
-                if (!empty($availableMonths)) {
-                    $quarter['available'] = true;
-                    foreach ($availableMonths as $month) {
-                        $quarter['total'] += $currentData[$month]['total_penjualan'] ?? 0;
-                        $quarter['iklan'] += $currentData[$month]['penjualan_iklan'] ?? 0;
-                        $quarter['biaya'] += $currentData[$month]['biaya_iklan'] ?? 0; // Tambah biaya
-                    }
-                }
-            }
-            
-            return $quarters;
+        public function switchYear($year) {
+            $this->tahunAktif = $year;
+            $this->clearBulanCache();
+            $this->loadBulanTersedia();
         }
         
+        protected function clearBulanCache() {
+            $userId = auth()->id();
+            $tahun = $this->tahunAktif;
+            cache()->forget("bulan_tersedia_{$userId}_{$tahun}");
+        }
+
         public function with(): array {
             return [
-                'metrics' => $this->calculateMetrics(),
-                'qoq' => $this->calculateQoQ(),
                 'isProcessing' => $this->isProcessing,
                 'progress' => $this->progress,
+                'tahunAktif' => $this->tahunAktif,
+                'bulanTersedia' => $this->bulanTersedia,
             ];
         }
+        
         
     }
 ?>
@@ -154,13 +85,16 @@
                 <div class="flex gap-4">
                     <x-app.heading 
                         title="Data Organik vs Iklan {{ $tahunAktif}}" 
-                        description="Perbandingan data " 
+                        description="Mengetahui seberapa besar porsi omzet produk yang didorong oleh iklan.
+" 
                         :border="false" 
                     />
+                </div>
+                <div class="flex justify-end gap-2">
                     <x-button wire:click="switchYear({{ $tahunAktif - 1 }})">{{ $tahunAktif - 1 }}</x-button>
                     <x-button wire:click="switchYear({{ $tahunAktif + 1 }})" outlined>{{ $tahunAktif + 1 }}</x-button>
+                    <x-button tag="a" href="/datacenter-organik-iklan/step1">Upload Data</x-button>
                 </div>
-                <x-button tag="a" href="/datacenter-organik-iklan/step1">Upload Data</x-button>
             </div>
             
             <!-- Tambahkan polling untuk memeriksa status upload -->
@@ -171,120 +105,84 @@
                         <div class="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                     <!-- Progress Bar -->
-                        <div class="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
-                            <div class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-500" style="width: {{ $progress }}%;"></div>
-                        </div>
-                        <!-- Progress Bar -->
-                        <div class="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
-                            <div class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-500" style="width: {{ $progress }}%;"></div>
-                        </div>
-                        <small class="text-gray-500">Halaman akan otomatis diperbarui setiap 1 menit.</small>
+                    <div class="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-500" style="width: {{ $progress }}%;"></div>
                     </div>
+                    <!-- Progress Bar -->
+                    <div class="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-500" style="width: {{ $progress }}%;"></div>
+                    </div>
+                    <small class="text-gray-500">Halaman akan otomatis diperbarui setiap 1 menit.</small>
                 @else
                     <div class="text-green-600 font-medium">Proses selesai! Data telah berhasil diunggah.</div>
                 @endif
-            </div>
-
-            <div class="mt-4 overflow-x-auto border rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bulan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Penjualan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Penjualan Iklan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">% Iklan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Biaya Iklan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">MoM</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">YoY</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach($metrics as $month => $data)
-                        @php
-                            $total = $data['total'] ?? 0;
-                            $iklan = $data['iklan'] ?? 0;
-                            $biaya = $data['biaya'] ?? 0;
-                            $persenIklan = $total > 0 ? ($iklan / $total * 100) : 0;
-                            $isCurrentMonth = $month == $bulanAktif;
-                        @endphp
-                        <tr @if($isCurrentMonth) class="bg-blue-50" @endif>
-                            <td class="px-6 py-4 font-medium">
-                                {{ DateTime::createFromFormat('!m', $month)->format('F') }}
-                                @if($isCurrentMonth) <span class="text-blue-500">(Bulan Aktif)</span> @endif
-                            </td>
-                            <td class="px-6 py-4 text-right">@moneyShort($total)</td>
-                            <td class="px-6 py-4 text-right">@moneyShort($iklan)</td>
-                            <td class="px-6 py-4 text-right {{ $persenIklan > 50 ? 'text-red-500' : 'text-green-500' }}">
-                                {{ number_format($persenIklan, 2) }}%
-                            </td>
-                            <td class="px-6 py-4 text-right text-orange-600">@moneyShort($biaya)</td>
-                            <td class="px-6 py-4 text-right {{ ($data['mom'] ?? 0) >= 0 ? 'text-green-500' : 'text-red-500' }}">
-                                {{ number_format($data['mom'] ?? 0, 2) }}%
-                            </td>
-                            <td class="px-6 py-4 text-right {{ ($data['yoy'] ?? 0) >= 0 ? 'text-green-500' : 'text-red-500' }}">
-                                {{ number_format($data['yoy'] ?? 0, 2) }}%
-                            </td>
-                        </tr>
-                        @endforeach
-                        <tr class="bg-gray-50">
-                            <td class="px-6 py-4 font-bold">Total {{ $tahunAktif }}</td>
-                            <td class="px-6 py-4 text-right font-bold">@moneyShort(array_sum(array_column($metrics, 'total')))</td>
-                            <td class="px-6 py-4 text-right font-bold">@moneyShort(array_sum(array_column($metrics, 'iklan')))</td>
-                            <td></td>
-                            <td class="px-6 py-4 text-right font-bold text-orange-600">@moneyShort(array_sum(array_column($metrics, 'biaya')))</td>
-                            <td class="px-6 py-4 text-right font-bold">
-                                @php
-                                    $totalYear = array_sum(array_column($metrics, 'total'));
-                                    $totalIklanYear = array_sum(array_column($metrics, 'iklan'));
-                                    $persenIklanYear = $totalYear > 0 ? ($totalIklanYear / $totalYear * 100) : 0;
-                                @endphp
-                            </td>
-                            <td colspan="2"></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <small>Total Penjualan : Total nilai dari pesanan siap dikirim dalam jangka waktu tertentu, termasuk pesanan non-COD telah dibayar dan pesanan COD terkonfirmasi, termasuk penjualan yang dibatalkan dan dikembalikan.</small>
-            
-            <!-- Tambahkan section untuk QoQ -->
-            <div class="mt-8 p-4 border rounded-lg">
-                <h3 class="text-lg font-semibold mb-4">Perbandingan Quarter-over-Quarter (QoQ)</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    @foreach($qoq as $quarter => $data)
-                    <div class="p-4 border rounded bg-white shadow-sm">
-                        <h4 class="font-bold text-gray-700">
-                            Q{{ $quarter }} {{ $tahunAktif }}
-                            @if(!$data['available']) <span class="text-gray-400"></span> @endif
-                        </h4>
                         
-                        @if($data['available'])
-                        <div class="mt-2 space-y-1">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Total Penjualan:</span>
-                                <span class="font-medium">@moneyShort($data['total'])</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Penjualan Iklan:</span>
-                                <span class="font-medium">@moneyShort($data['iklan'])</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Biaya Iklan:</span>
-                                <span class="font-medium text-orange-600">@moneyShort($data['biaya'])</span>
-                            </div>
-                            <div class="flex justify-between border-t pt-1">
-                                <span class="text-gray-600">Kontribusi Iklan:</span>
-                                <span class="{{ ($data['total'] > 0 && ($data['iklan']/$data['total']*100) > 30) ? 'text-red-500' : 'text-green-500' }}">
-                                    {{ $data['total'] > 0 ? number_format(($data['iklan']/$data['total']*100), 2) : 0 }}%
-                                </span>
-                            </div>
-                        </div>
-                        @else
-                        <div class="mt-2 text-center py-4 bg-gray-50 rounded">
-                            <span class="text-gray-400 text-sm">Data periode ini belum tersedia</span>
-                        </div>
-                        @endif
-                    </div>
+            </div>
+            <div class="flex flex-col rounded py-3 px-3">
+                {{ Shoapi::call('shop')->access('auth_partner')->getUrl(); }}
+                <div class="mb-2 flex gap-2">
+                    @php
+                        $bulanNama = [
+                            1 => 'JAN', 2 => 'FEB', 3 => 'MAR', 4 => 'APR',
+                            5 => 'MEI', 6 => 'JUN', 7 => 'JUL', 8 => 'AGU',
+                            9 => 'SEP', 10 => 'OKT', 11 => 'NOV', 12 => 'DES'
+                        ];
+                    @endphp
+                    
+                    @foreach(range(1, 12) as $bulan)
+                        <span class="mb-2 h-[25px] flex-1 rounded-xl text-center
+                            {{ in_array($bulan, $bulanTersedia) ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-white shadow-md' }}">
+                            {{ $bulanNama[$bulan] }}
+                        </span>
                     @endforeach
+                </div>
+            </div>
+            <div class="bg-white p-3 rounded-xl shadow-xl flex items-center justify-between mt-4">
+                <div class="flex space-x-6 items-center">
+                    <img src="https://i.pinimg.com/originals/25/0c/a0/250ca0295215879bd0d53e3a58fa1289.png" class="w-auto h-24 rounded-lg"/>
+                    <div>
+                        <p class="font-semibold text-base">Kontribusi Penjualan Iklan</p>
+                        <p class="font-semibold text-sm text-gray-400">Mengetahui seberapa besar porsi omzet produk yang didorong oleh iklan.
+                        </p>
+                    </div>              
+                </div>
+                   
+                <div class="flex space-x-2 items-center">
+                    <div class="bg-gray-300 rounded-md p-2 flex items-center">
+                        <a href="datacenter-organik-iklan/kontribusi-penjualan-iklan"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg></a>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-3 rounded-xl shadow-xl flex items-center justify-between mt-6">
+                <div class="flex space-x-6 items-center">
+                    <img src="https://i.pinimg.com/originals/25/0c/a0/250ca0295215879bd0d53e3a58fa1289.png" class="w-auto h-24 rounded-lg"/>
+                    <div>
+                        <p class="font-semibold text-base">Kontribusi Unit Terjual Iklan</p>
+                        <p class="font-semibold text-sm text-gray-400">Mengetahui seberapa besar porsi unit terjual produk yang didorong oleh iklan.
+                        </p>
+                    </div>              
+                </div>
+                   
+                <div class="flex space-x-2 items-center">
+                    <div class="bg-gray-300 rounded-md p-2 flex items-center">
+                        <a href="datacenter-organik-iklan/kontribusi-unit-terjual-iklan"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg></a>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-3 rounded-xl shadow-xl flex items-center justify-between mt-6">
+                <div class="flex space-x-6 items-center">
+                    <img src="https://i.pinimg.com/originals/25/0c/a0/250ca0295215879bd0d53e3a58fa1289.png" class="w-auto h-24 rounded-lg"/>
+                    <div>
+                        <p class="font-semibold text-base">Blended ACOS</p>
+                        <p class="font-semibold text-sm text-gray-400">Mengukur efisiensi biaya iklan relatif terhadap seluruh penjualan produk. Rumus: (Total Biaya Iklan / Total Penjualan) × 100%
+                        </p>
+                    </div>              
+                </div>
+                   
+                <div class="flex space-x-2 items-center">
+                    <div class="bg-gray-300 rounded-md p-2 flex items-center">
+                        <a href="datacenter-organik-iklan/blended-acos"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg></a>
+                    </div>
                 </div>
             </div>
         </x-app.container>

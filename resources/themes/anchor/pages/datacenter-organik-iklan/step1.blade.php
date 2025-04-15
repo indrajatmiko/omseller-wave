@@ -26,10 +26,31 @@
             $this->updateSubmitStatus();
         }
 
-        public function updatedBulan(): void
+        public function onBulanChange(): void
         {
+            $this->validateBulan();
             $this->updateSubmitStatus();
         }
+
+        // public function updatedBulan($value): void
+        // {
+        //     $this->validateOnly('bulan', [
+        //         'bulan' => [
+        //             'required',
+        //             'not_in:0',
+        //             function ($attribute, $value, $fail) {
+        //                 if (PerformaToko::where('user_id', auth()->id())
+        //                     ->where('tahun', $this->tahun)
+        //                     ->where('bulan', $value)
+        //                     ->exists()) {
+        //                     $fail('Data untuk periode ini sudah ada.');
+        //                 }
+        //             }
+        //         ]
+        //     ]);
+            
+        //     $this->isSubmitDisabled = $this->bulan == 0 || $this->getErrorBag()->has('bulan');
+        // }
 
         public function updatedTahun(): void
         {
@@ -37,9 +58,29 @@
             $this->updateSubmitStatus();
         }
 
+        private function validateBulan(): void
+        {
+            $this->validateOnly('bulan', [
+                'bulan' => [
+                    'required',
+                    'not_in:0',
+                    function ($attribute, $value, $fail) {
+                        $exists = PerformaToko::where('user_id', auth()->id())
+                            ->where('tahun', $this->tahun)
+                            ->where('bulan', $value)
+                            ->exists();
+
+                        if ($exists) {
+                            $fail('Data untuk periode ini sudah ada.');
+                        }
+                    }
+                ]
+            ]);
+        }
+
         public function updateSubmitStatus(): void
         {
-            $this->isSubmitDisabled = $this->bulan == 0;
+            $this->isSubmitDisabled = $this->bulan == 0 || $this->getErrorBag()->has('bulan');
         }
 
         public function getAvailableMonths(): array
@@ -140,16 +181,17 @@
                                 </select>
                             </div>
                             <div class="basis-1/8 mr-3">
-                                <select wire:model="bulan" wire:key="bulan-select-{{ $tahun }}">
+                                <select wire:model="bulan" wire:change="onBulanChange" class="@error('bulan') border-red-500 @enderror">
                                     <option value="0">Pilih Bulan</option>
-                                    @forelse($this->getAvailableMonths() as $num => $name)
+                                    @foreach($this->getAvailableMonths() as $num => $name)
                                         <option value="{{ $num }}">{{ $name }}</option>
-                                    @empty
-                                        <option disabled>Semua bulan telah diinput</option>
-                                    @endforelse
+                                    @endforeach
                                 </select>
-                                @error('bulan') 
-                                    <small class="text-red-600 block mt-1">{{ $message }}</small> 
+                                
+                                @error('bulan')
+                                    <div class="mt-1 text-red-600 text-sm">
+                                        {{ $message }}
+                                    </div>
                                 @enderror
                             </div>
                         </div>
@@ -195,15 +237,21 @@
                             <p class="mt-2 max-w-screen-sm text-sm text-gray-500">Klik tombol selanjutnya untuk menuju ke langkah berikutnya</p>
                             <button 
                                 type="submit" 
-                                class="mt-2 px-4 py-2 bg-black text-white font-bold rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50 disabled:opacity-50"
-                                wire:loading.attr="disabled"
+                                class="mt-2 px-4 py-2 bg-black text-white rounded-md transition-all
+                                    @if(!$isSubmitDisabled) hover:bg-gray-800 cursor-pointer @else bg-opacity-50 cursor-not-allowed @endif"
                                 @disabled($isSubmitDisabled)
+                                wire:loading.attr="disabled"
                             >
-                                Selanjutnya
+                                <span wire:loading.remove>Selanjutnya</span>
+                                <span wire:loading>
+                                    <i class="fa-solid fa-spinner animate-spin"></i> Memproses...
+                                </span>
                             </button>
 
-                            @if($isSubmitDisabled)
-                                <small class="text-red-600 block mt-1">Pilih bulan terlebih dahulu sebelum melanjutkan.</small>
+                            @if($isSubmitDisabled && $bulan == 0)
+                                <div class="mt-1 text-red-600 text-sm">
+                                    Silakan pilih bulan terlebih dahulu
+                                </div>
                             @endif
                         </div>
                     </div>
