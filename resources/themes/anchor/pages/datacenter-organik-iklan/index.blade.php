@@ -5,7 +5,6 @@
     use App\Models\PerformaIklan;
     use Illuminate\Support\Facades\DB;
     use App\Helpers\NumberFormatter;
-    use Muhanz\Shoapi\Facades\Shoapi;
 
     middleware('auth');
     name('datacenter-organik-iklan');
@@ -119,7 +118,6 @@
                         
             </div>
             <div class="flex flex-col rounded py-3 px-3">
-                {{ Shoapi::call('shop')->access('auth_partner')->getUrl(); }}
                 <div class="mb-2 flex gap-2">
                     @php
                         $bulanNama = [

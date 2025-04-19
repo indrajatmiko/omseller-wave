@@ -48,6 +48,12 @@
                         <x-app.sidebar-link href="/datacenter-produk" icon="phosphor-tiktok-logo" :active="(Request::is('datacenter-produk'))">Produk</x-app.sidebar-link>
                         <x-app.sidebar-link href="/datacenter-ikuti" icon="phosphor-storefront" :active="(Request::is('datacenter-ikuti'))">Ikuti Toko</x-app.sidebar-link>
                     </x-app.sidebar-dropdown>
+
+                    <x-app.sidebar-dropdown text="Sinkronisasi Pesanan" icon="phosphor-chart-line" id="sinkronisasis_dropdown" :active="(Request::is('sinkronisasis'))" :open="(Request::is('sinkronisasi/pesanan-shopee') || Request::is('datacenter-produk') || Request::is('datacenter-ikuti')) ? '1' : '0'">
+                        <x-app.sidebar-link href="/sinkronisasi/pesanan-shopee" icon="phosphor-traffic-signal" :active="(Request::is('sinkronisasi/pesanan-shopee'))">Shopee</x-app.sidebar-link>
+                        <x-app.sidebar-link href="/datacenter-produk" icon="phosphor-tiktok-logo" :active="(Request::is('datacenter-produk'))">Tiktok</x-app.sidebar-link>
+                        <x-app.sidebar-link href="/datacenter-ikuti" icon="phosphor-storefront" :active="(Request::is('datacenter-ikuti'))">Tokopedia</x-app.sidebar-link>
+                    </x-app.sidebar-dropdown>
                     
                     <x-app.sidebar-link onclick="event.preventDefault(); new FilamentNotification().title('Modify this button inside of sidebar.blade.php').send()" icon="phosphor-pencil-line" active="false">Produk - Hitung Margin</x-app.sidebar-link>
                     <x-app.sidebar-link  onclick="event.preventDefault(); new FilamentNotification().title('Modify this button inside of sidebar.blade.php').send()" icon="phosphor-users" active="false">Users</x-app.sidebar-link>

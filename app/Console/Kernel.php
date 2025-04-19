@@ -4,6 +4,7 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use App\Jobs\RefreshShopeeTokens;
 
 class Kernel extends ConsoleKernel
 {
@@ -17,6 +18,9 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule->command('subscriptions:cancel-expired')->hourly();
+        $schedule->job(new RefreshShopeeTokens)
+            ->everyTenMinutes()
+            ->withoutOverlapping(); // Hindari eksekusi job yang tumpang tindih
     }
 
     /**
@@ -30,4 +34,5 @@ class Kernel extends ConsoleKernel
 
         require base_path('routes/console.php');
     }
+    
 }

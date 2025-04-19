@@ -1,0 +1,47 @@
+<?php
+namespace App\Jobs;
+
+use App\Models\ShopeeAuth;
+use App\Services\ShopeeTokenService;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+
+class RefreshShopeeTokens implements ShouldQueue
+{
+    use InteractsWithQueue, SerializesModels;
+
+    /**
+     * The name of the queue on which the job will be pushed.
+     *
+     * @var string
+     */
+    public $queue = 'default'; // Tentukan nama queue (default atau custom)
+
+    public function handle()
+    {
+        Log::debug('RefreshShopeeTokens job started at ' . now());
+    
+        // try {
+        //     // Ambil toko yang access_token-nya kedaluwarsa dalam 10 menit
+        //     $shops = ShopeeAuth::where('expires_at', '<', now()->addMinutes(10))->get();
+        //     Log::info('Jumlah toko ditemukan: ' . $shops->count());
+    
+        //     foreach ($shops as $shop) {
+        //         try {
+        //             Log::info('Memperbarui token untuk toko: ' . $shop->shop_id);
+        //             app(ShopeeTokenService::class)->refreshAccessToken($shop);
+        //         } catch (\Exception $e) {
+        //             Log::error('Gagal memperbarui token Shopee untuk toko ' . $shop->shop_id, [
+        //                 'error' => $e->getMessage()
+        //             ]);
+        //         }
+        //     }
+        // } catch (\Exception $e) {
+        //     Log::error('Error di RefreshShopeeTokens: ' . $e->getMessage());
+        // }
+    
+        Log::debug('RefreshShopeeTokens job selesai pada ' . now());
+    }
+}
