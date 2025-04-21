@@ -16,7 +16,7 @@ class RefreshShopeeTokens
         try {
             // Ambil toko yang access_token-nya kedaluwarsa dalam 10 menit
             $shops = ShopeeAuth::where('expires_at', '<', now()->addMinutes(10))->get();
-            Log::info('Jumlah toko ditemukan: ' . $shops->count());
+            // Log::info('Jumlah toko ditemukan: ' . $shops->count());
     
             foreach ($shops as $shop) {
                 try {

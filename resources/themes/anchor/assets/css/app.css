@@ -87,3 +87,19 @@ html, body{
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+@layer utilities {
+  .scrollbar-horizontal {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e0 #f3f4f6;
+  }
+  
+  .scrollbar-horizontal::-webkit-scrollbar {
+      height: 8px;
+  }
+  
+  .scrollbar-horizontal::-webkit-scrollbar-thumb {
+      background-color: #cbd5e0;
+      border-radius: 4px;
+  }
+}

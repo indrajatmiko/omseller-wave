@@ -49,9 +49,9 @@
                         <x-app.sidebar-link href="/datacenter-ikuti" icon="phosphor-storefront" :active="(Request::is('datacenter-ikuti'))">Ikuti Toko</x-app.sidebar-link>
                     </x-app.sidebar-dropdown>
 
-                    <x-app.sidebar-dropdown text="Sinkronisasi Pesanan" icon="phosphor-chart-line" id="sinkronisasis_dropdown" :active="(Request::is('sinkronisasis'))" :open="(Request::is('sinkronisasi/pesanan-shopee') || Request::is('datacenter-produk') || Request::is('datacenter-ikuti')) ? '1' : '0'">
-                        <x-app.sidebar-link href="/sinkronisasi/pesanan-shopee" icon="phosphor-traffic-signal" :active="(Request::is('sinkronisasi/pesanan-shopee'))">Shopee</x-app.sidebar-link>
-                        <x-app.sidebar-link href="/datacenter-produk" icon="phosphor-tiktok-logo" :active="(Request::is('datacenter-produk'))">Tiktok</x-app.sidebar-link>
+                    <x-app.sidebar-dropdown text="Sinkronisasi" icon="phosphor-arrows-clockwise" id="sinkronisasis_dropdown" :active="(Request::is('sinkronisasis'))" :open="(Request::is('sinkronisasi/pesanan-shopee') || Request::is('sinkronisasi/produk-shopee') || Request::is('datacenter-ikuti')) ? '1' : '0'">
+                        <x-app.sidebar-link href="/sinkronisasi/produk-shopee" icon="phosphor-package" :active="(Request::is('sinkronisasi/produk-shopee'))">Produk</x-app.sidebar-link>
+                        <x-app.sidebar-link href="/sinkronisasi/pesanan-shopee" icon="phosphor-trolley-suitcase" :active="(Request::is('sinkronisasi/pesanan-shopee'))">Pesanan</x-app.sidebar-link>
                         <x-app.sidebar-link href="/datacenter-ikuti" icon="phosphor-storefront" :active="(Request::is('datacenter-ikuti'))">Tokopedia</x-app.sidebar-link>
                     </x-app.sidebar-dropdown>
                     

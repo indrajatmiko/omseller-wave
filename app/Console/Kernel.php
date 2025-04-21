@@ -19,7 +19,7 @@ class Kernel extends ConsoleKernel
         // $schedule->command('inspire')->hourly();
         $schedule->command('subscriptions:cancel-expired')->hourly();
         $schedule->job(new RefreshShopeeTokens)
-            ->everyTenMinutes()
+            ->everyFiveMinutes()
             ->withoutOverlapping(); // Hindari eksekusi job yang tumpang tindih
     }
 
