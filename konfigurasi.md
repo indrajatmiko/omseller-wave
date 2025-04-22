@@ -3,7 +3,8 @@ HOWTO :
     https://laravel.com/docs/11.x/migrations#available-column-types
 2. buat file : resources/themes/anchor/pages/NamaMenu/index.blade.php
 3. php artisan vendor:publish --provider="Maatwebsite\Excel\ExcelServiceProvider" --tag=config
-
+4.  sudo chmod -Rf 0777 /var/www/html/blog/bootstrap/cache
+    sudo chmod -Rf 0777 /var/www/html/blog/storage
 
 NGROK :
 1. ngrok http http://127.0.0.1:8000/ --response-header-add='Content-Security-Policy: upgrade-insecure-requests'

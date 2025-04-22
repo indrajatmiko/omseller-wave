@@ -16,7 +16,6 @@ new class extends Component {
 
     public $itemData;
     public $orderData;
-    public $orderDetail;
 
     public function mount() {
         $this->loadShopInfo();
@@ -24,7 +23,6 @@ new class extends Component {
         // $this->shopData = $this->get_shop_info();
         // $this->itemData = $this->get_item_list();
         $this->orderData = $this->get_order_list();
-        $this->orderDetail = $this->get_order_detail('2504220GWR2Q9A');
     }
 
     public function loadShopInfo() {
@@ -61,7 +59,22 @@ new class extends Component {
             ->response();
     }
 
-    public function get_order_list($status = null)
+    public function get_item_list()
+    {
+        $params =  [
+            'offset'  =>  '0',
+            'page_size' =>  '10',
+            'item_status' =>  ['NORMAL'],
+        ];
+
+        return Shoapi::call('product')
+            ->access('get_item_list', $this->accessToken)
+            ->shop($this->shopId)
+            ->request($params)
+            ->response();
+    }
+
+    public function get_order_list()
     {
         $timeTo = now()->timestamp; // Tanggal hari ini (timestamp)
         $timeFrom = now()->subDays(15)->timestamp; // 15 hari sebelumnya (timestamp)
@@ -71,25 +84,11 @@ new class extends Component {
             'time_from'  =>  $timeFrom,
             'time_to'  =>  $timeTo,
             'page_size' =>  '20',
-            'order_status' =>  $status,
+            // 'order_status' =>  'READY_TO_SHIP',
         ];
 
         return Shoapi::call('order')
             ->access('get_order_list', $this->accessToken)
-            ->shop($this->shopId)
-            ->request($params)
-            ->response();
-    }
-
-    public function get_order_detail($order_sn = null)
-    {
-        $params =  [
-            'order_sn_list'  =>  $order_sn,
-            'response_optional_fields'  =>  'total_amount,buyer_username,recipient_address,item_list',
-        ];
-
-        return Shoapi::call('order')
-            ->access('get_order_detail', $this->accessToken)
             ->shop($this->shopId)
             ->request($params)
             ->response();
@@ -113,12 +112,9 @@ new class extends Component {
                 </div>
             </div>
             <div>
-                <h2>get_order_list:</h2>
+                Table : {{ $this->shopInfo}}
+                <h2>Informasi Item:</h2>
                 <pre>{{ json_encode($orderData, JSON_PRETTY_PRINT) }}</pre>
-            </div>
-            <div>
-                <h2>get_order_detail:</h2>
-                <pre>{{ json_encode($orderDetail, JSON_PRETTY_PRINT) }}</pre>
             </div>
         </x-app.container>
 

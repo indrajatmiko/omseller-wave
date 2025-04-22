@@ -19,6 +19,12 @@ new class extends Component {
     public $harga_modal = [];
     public $harga_modal_model = [];
 
+    public $syncOffset = 0;
+    public $syncTotalItems = 0;
+    public $isSyncing = false;
+
+    public $search = '';
+
     public function mount() {
         // $this->loadShopInfo();
         
@@ -37,6 +43,14 @@ new class extends Component {
     public function getSkusProperty() {
         return Sku::with(['models' => fn($q) => $q->select('id', 'sku_id', 'harga_modal', 'model_sku', 'image_url', 'variation_option_name', 'original_price', 'current_price')])
             ->where('user_id', auth()->id())
+            ->when($this->search, function($query) {
+                $query->where(function($q) {
+                    $q->where('item_name', 'like', '%'.$this->search.'%')
+                    ->orWhereHas('models', function($modelQuery) {
+                        $modelQuery->where('variation_option_name', 'like', '%'.$this->search.'%');
+                    });
+                });
+            })
             ->select('id', 'item_name', 'item_sku', 'image_url', 'original_price', 'current_price', 'has_model', 'original_brand_name', 'item_status', 'harga_modal')
             ->paginate(10);
     }
@@ -62,31 +76,42 @@ new class extends Component {
     }
 
     public function sinkronisasi() {
-        $this->loadShopInfo();
-        $userId = auth()->id();
-        
-        // Ambil total item
-        $initialParams = [
-            'offset' => 0,
-            'page_size' => 10,
-            'item_status' => ['NORMAL']
-        ];
-        
-        $totalItems = $this->callShopeeAPI('product', 'get_item_list', $initialParams)['total_count'];
-        
-        // Proses dalam chunk 10 item
-        $chunkSize = 10;
-        $totalChunks = ceil($totalItems / $chunkSize);
+    $this->loadShopInfo();
+    
+    $initialParams = [
+        'offset' => 0,
+        'page_size' => 10,
+        'item_status' => ['NORMAL']
+    ];
+    
+    $response = $this->callShopeeAPI('product', 'get_item_list', $initialParams);
+    $this->syncTotalItems = $response['total_count'] ?? 0;
+    
+    if($this->syncTotalItems > 0) {
+        $this->syncOffset = 0;
+        $this->isSyncing = true;
+        $this->processNextChunk();
+    } else {
+        Notification::make()->title('Tidak ada produk untuk disinkronkan')->warning()->send();
+    }
+}
 
-        for ($offset = 0; $offset < $totalItems; $offset += $chunkSize) {
-            $this->processChunk($userId, $offset, $chunkSize);
-            unset($itemList, $itemBase);
-            gc_collect_cycles();
-        }
-
+public function processNextChunk() {
+    if(!$this->isSyncing || $this->syncOffset >= $this->syncTotalItems) {
+        $this->isSyncing = false;
         Notification::make()->title('Sinkronisasi selesai!')->success()->send();
+        return;
     }
 
+    try {
+        $this->processChunk(auth()->id(), $this->syncOffset, 10);
+        $this->syncOffset += 10;
+        $this->dispatch('process-next-chunk');
+    } catch (\Exception $e) {
+        $this->isSyncing = false;
+        Notification::make()->title('Gagal sinkronisasi')->body($e->getMessage())->danger()->send();
+    }
+}
     private function processChunk($userId, $offset, $pageSize) {
         try {
             $itemList = $this->get_item_list($offset, $pageSize);
@@ -218,123 +243,120 @@ new class extends Component {
                     :border="true"
                 />
                 <div class="flex justify-end gap-2">
-                    <x-button wire:click="sinkronisasi" wire:loading.attr="disabled">
-                        Sinkronisasi
+                    <x-button wire:click="sinkronisasi" wire:loading.attr="disabled" wire:target="sinkronisasi">
+                        <span wire:loading.remove wire:target="sinkronisasi">Sinkronisasi</span>
+                        <span wire:loading wire:target="sinkronisasi">Memproses...</span>
                     </x-button>
                 </div>
             </div>
             
-            <div wire:loading>
-                <div class="w-full h-2 bg-gray-200 rounded">
-                    <div class="h-2 bg-blue-500 rounded animate-pulse" style="width: 80%"></div>
+            <div class="mb-4 space-y-2">
+                @if($isSyncing)
+                    <div class="text-sm text-gray-600">
+                        Memproses {{ min($syncOffset + 10, $syncTotalItems) }} dari {{ $syncTotalItems }} item...
+                        @if(min($syncOffset + 10, $syncTotalItems) == $syncTotalItems)
+                            <span class="ml-2 text-blue-600">(Tahap akhir, sebentar lagi)</span>
+                        @endif
+                    </div>
+                    <div class="w-full bg-gray-200 rounded h-2">
+                        <div class="bg-black h-2 rounded transition-all duration-300" 
+                             style="width: {{ min(($syncOffset / $syncTotalItems) * 100, 100) }}%">
+                        </div>
+                    </div>
+                    <div class="text-xs text-red-500">
+                        Harap tunggu sampai proses selesai. Jangan tutup browser ini.
+                    </div>
+                @endif
+            </div>
+            
+            <script>
+                document.addEventListener('livewire:initialized', () => {
+                    Livewire.on('process-next-chunk', () => {
+                        setTimeout(() => {
+                            @this.processNextChunk();
+                        }, 100);
+                    });
+                });
+            </script>
+
+            <div class="mb-4">
+                <div class="relative max-w-md">
+                    <input 
+                        type="text" 
+                        wire:model.live="search"
+                        placeholder="Cari produk berdasarkan nama..."
+                        class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm transition"
+                    >
+                    <div class="absolute left-3 top-2.5 text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    @if($search)
+                        <button 
+                            wire:click="$set('search', '')" 
+                            class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                        >
+                            &times;
+                        </button>
+                    @endif
                 </div>
             </div>
-
             <div class="grid gap-3">
-                @foreach($this->skus as $sku)
-                    <div class="bg-white rounded-lg shadow-md p-3 border border-gray-100/70 hover:border-gray-200 transition-all">
-                        <div class="flex items-start gap-3">
-                            <img 
-                                src="{{ $sku->image_url }}" 
-                                class="w-24 h-24 object-cover rounded-md border-2 border-white shadow-sm"
-                                loading="lazy"
-                                width="96"
-                                height="96"
-                                alt="{{ $sku->item_name }}">
-                            
-                            <div class="flex-1 min-w-0">
-                                <div>
-                                    <h3 class="text-sm font-semibold text-gray-800 truncate">{{ $sku->item_name }}</h3>
-                                    <span class="text-xs text-gray-500 block mt-0.5">SKU Induk: {{ $sku->item_sku }}</span>
-                                </div>
-                                
-                                <div class="flex items-center gap-2 mt-1">
-                                    <span class="text-xs px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">{{ $sku->original_brand_name }}</span>
-                                    <span class="text-xs text-gray-500">{{ $sku->has_model ? 'Multi Varian' : 'Single Varian' }}</span>
-                                </div>
-
-                                <div class="flex items-center justify-between mt-2">
-                                    <div class="flex items-baseline gap-2">
-                                        <span class="text-xs text-gray-500">Harga Jual</span>
-                                        <span class="text-sm font-medium text-blue-600">
-                                            Rp{{ number_format($sku->current_price,0,',','.') }}
-                                        </span>
-                                    </div>
-                                    
-                                    @if (!$sku->has_model)
-                                        <div class="flex flex-col">
-                                            <span class="text-xs text-gray-500 mb-0.5">Harga Modal</span>
-                                            <div class="flex items-center gap-1">
-                                                <div class="relative">
-                                                    <input
-                                                        type="number"
-                                                        wire:model.defer="harga_modal.{{ $sku->id }}"
-                                                        class="h-8 w-32 rounded-md border border-gray-300 bg-gray-50 pl-7 pr-2 text-xs focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition"
-                                                        placeholder="Modal"
-                                                    />
-                                                    <span class="absolute left-2 top-2 text-xs text-gray-400">Rp</span>
-                                                </div>
-                                                <button
-                                                    wire:click="updateHargaModal({{ $sku->id }})"
-                                                    class="h-8 px-3 rounded-md bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold shadow transition"
-                                                    type="button"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
+                @if($this->skus->isEmpty())
+                    <div class="bg-white rounded-lg p-6 text-center border border-dashed border-gray-200">
+                        <div class="text-gray-400 mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                         </div>
+                        <p class="text-gray-500 text-sm">Tidak ditemukan produk dengan nama "{{ $search }}"</p>
+                    </div>
+                @else
 
-                        @if($sku->models->count())
-                            <div class="mt-2 border-t pt-2">
-                                <div class="text-xs font-medium text-gray-600">
-                                    {{ $sku->models->count() }} Varian
-                                </div>
-                                
-                                <div class="grid gap-1.5 mt-1.5" x-data="{ showAll: false }">
-                                    @foreach($sku->models as $i => $model)
-                                        <div
-                                            x-show="showAll || {{ $i }} < 3"
-                                            class="flex items-center gap-3 px-2 py-1.5 bg-gray-50/50 rounded-md hover:bg-gray-100/30"
-                                            @if($i >= 3) x-cloak @endif
-                                        >
-                                            <img 
-                                                src="{{ $model->image_url }}" 
-                                                class="w-12 h-12 object-cover rounded border"
-                                                loading="lazy"
-                                                width="40"
-                                                height="40"
-                                                alt="Varian">
-                                            <div class="flex-1 min-w-0">
-                                                <div class="text-xs font-medium text-gray-700 truncate">{{ $model->variation_option_name }}</div>
-                                                <div class="text-xs text-gray-400 truncate">Kode Variasi: {{ $model->model_sku }}</div>
-                                            </div>
-                                            <div class="flex flex-col items-end min-w-[90px]">
-                                                <span class="text-xs text-gray-500">Harga Jual</span>
-                                                <span class="text-xs text-blue-600 font-medium">
-                                                    Rp{{ number_format($model->current_price,0,',','.') }}
-                                                </span>
-                                            </div>
-                                            <div class="flex flex-col">
-                                                <span class="text-xs text-gray-500 mb-0.5">Harga Modal</span>
-                                                <div class="flex items-center gap-1">
+                <div class="overflow-x-auto rounded-md shadow border bg-white">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                                <th class="px-6 py-3 text-left font-semibold text-gray-700">Produk</th>
+                                <th class="px-6 py-3 text-left font-semibold text-gray-700">Brand</th>
+                                <th class="px-6 py-3 text-left font-semibold text-gray-700">Harga Jual</th>
+                                <th class="px-6 py-3 text-left font-semibold text-gray-700">Harga Modal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse($this->skus as $sku)
+                                @if($sku->has_model && $sku->models->count())
+                                    @foreach($sku->models as $model)
+                                        <tr class="hover:bg-gray-100 transition">
+                                            <td class="px-6 py-3 flex items-center gap-3">
+                                                <img src="{{ $model->image_url ?? $sku->image_url }}" alt="Varian" class="w-16 h-16 object-cover rounded-lg border border-blue-100 shadow-sm" loading="lazy">
+                                                <div>
+                                                    <div class="font-semibold text-gray-900 truncate">
+                                                        {{ \Illuminate\Support\Str::limit($sku->item_name, 50, '..') }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-600">SKU Variasi: {{ $model->model_sku }}</div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-3 text-gray-700 align-middle">{{ $sku->original_brand_name ?? '-' }}</td>
+                                            <td class="px-6 py-3 text-blue-700 font-bold text-end">
+                                                {{ number_format($model->current_price,0,',','.') }}
+                                            </td>
+                                            <td class="px-6 py-3 align-middle">
+                                                <div class="flex items-center gap-2">
                                                     <div class="relative">
                                                         <input
                                                             type="number"
                                                             wire:model.defer="harga_modal_model.{{ $model->id }}"
-                                                            class="h-7 w-32 rounded-md border border-gray-300 bg-gray-50 pl-6 pr-2 text-xs focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition"
+                                                            class="h-9 w-32 rounded-lg border border-gray-200 bg-gray-50 pl-8 pr-2 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition text-end"
                                                             placeholder="Modal"
                                                         />
-                                                        <span class="absolute left-2 top-1.5 text-xs text-gray-400">Rp</span>
                                                     </div>
                                                     <button
                                                         wire:click="updateHargaModalModel({{ $model->id }})"
-                                                        class="h-7 px-2 rounded-md bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold shadow transition"
+                                                        class="h-9 px-3 rounded-lg 
+                                                            {{ !empty($harga_modal_model[$model->id]) ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700' }} 
+                                                            text-white text-xs font-semibold shadow transition"
                                                         type="button"
                                                     >
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -342,33 +364,59 @@ new class extends Component {
                                                         </svg>
                                                     </button>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            </td>
+                                        </tr>
                                     @endforeach
-                                
-                                    @if($sku->models->count() > 3)
-                                        <button
-                                            class="text-xs text-blue-600 hover:underline mt-1"
-                                            x-show="!showAll"
-                                            @click="showAll = true"
-                                            type="button"
-                                        >
-                                            Lihat semua ({{ $sku->models->count() - 2 }} SKU Produk)
-                                        </button>
-                                        <button
-                                            class="text-xs text-gray-500 hover:underline mt-1"
-                                            x-show="showAll"
-                                            @click="showAll = false"
-                                            type="button"
-                                        >
-                                            Tutup
-                                        </button>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                @endforeach
+                                @else
+                                    <tr class="hover:bg-gray-100 transition">
+                                        <td class="px-6 py-3 flex items-center gap-3">
+                                            <img src="{{ $sku->image_url }}" alt="Produk" class="w-16 h-16 object-cover rounded-lg border border-blue-100 shadow-sm" loading="lazy">
+                                            <div>
+                                                <div class="font-semibold text-gray-900 truncate">
+                                                    {{ \Illuminate\Support\Str::limit($sku->item_name, 50, '..') }}
+                                                </div>
+                                                <div class="text-xs text-gray-600">SKU Induk: {{ $sku->item_sku }}</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-3 text-gray-700 align-middle">{{ $sku->original_brand_name ?? '-' }}</td>
+                                        <td class="px-6 py-3 text-blue-700 font-bold text-end">
+                                            {{ number_format($sku->current_price,0,',','.') }}
+                                        </td>
+                                        <td class="px-6 py-3 align-middle">
+                                            <div class="flex items-center gap-2">
+                                                <div class="relative">
+                                                    <input
+                                                        type="number"
+                                                        wire:model.defer="harga_modal.{{ $sku->id }}"
+                                                        class="h-9 w-32 rounded-lg border border-gray-200 bg-gray-50 pl-8 pr-2 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition text-end"
+                                                        placeholder="Modal"
+                                                    />
+                                                </div>
+                                                <button
+                                                    wire:click="updateHargaModal({{ $sku->id }})"
+                                                    class="h-9 px-3 rounded-lg 
+                                                        {{ !empty($harga_modal[$sku->id]) ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700' }} 
+                                                        text-white text-xs font-semibold shadow transition"
+                                                    type="button"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endif
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center py-8 text-blue-300">Tidak ada produk ditemukan.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                @endif
             </div>
 
             <div class="mt-4">
