@@ -13,18 +13,18 @@
 
 use Illuminate\Support\Facades\Route;
 use Wave\Facades\Wave;
-use App\Http\Controllers\ShopeeSyncController;
+use App\Http\Controllers\ShopeeSyncLastYearController;
 
 // Wave routes
 Wave::routes();
 
-Route::post('/sinkronisasi/sync-pesanan-shopee', function() {
-    \App\Jobs\FetchShopeeOrdersJob::dispatch(auth()->user());
+Route::post('/sinkronisasi/sync-last-year-pesanan-shopee', function() {
+    \App\Jobs\FetchShopeeOrdersLastYearJob::dispatch(auth()->user());
     return back()->with('status', 'Proses sinkronisasi dimulai!');
 })->middleware('auth')->name('shopee.sync');
 
-Route::get('/sync-progress', function() {
-    $progress = Cache::get("shopee_sync_".auth()->id(), [
+Route::get('/sync-last-year-progress', function() {
+    $progress = Cache::get("shopee_sync_last_year_".auth()->id(), [
         'progress' => 0,
         'current_period' => '',
         'order_count' => 0,
@@ -33,7 +33,7 @@ Route::get('/sync-progress', function() {
     return response()->json($progress);
 })->middleware('auth');
 
-Route::post('/clear-sync-cache', function() {
-    Cache::forget("shopee_sync_".auth()->id());
+Route::post('/clear-sync-last-year-cache', function() {
+    Cache::forget("shopee_sync_last_year_".auth()->id());
     return response()->json(['status' => 'cleared']);
 })->middleware('auth');

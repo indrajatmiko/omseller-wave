@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\User;
 use App\Models\ShopeeAuth;
 
-class FetchShopeeOrdersJob implements ShouldQueue
+class FetchShopeeOrdersLastYearJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -42,7 +42,7 @@ class FetchShopeeOrdersJob implements ShouldQueue
         $totalChunks = ceil($totalDays / 15);
 
         // Inisialisasi cache dengan total yang benar
-        Cache::put("shopee_sync_{$this->user->id}", [
+        Cache::put("shopee_sync_last_year_{$this->user->id}", [
             'total' => $totalChunks,
             'processed' => 0,
             'current_period' => '',
@@ -63,14 +63,14 @@ class FetchShopeeOrdersJob implements ShouldQueue
             }
         
             // Dispatch job
-            ProcessShopeeOrderChunk::dispatch(
+            ProcessShopeeOrderLastYearChunk::dispatch(
                 $this->user,
                 $currentDate->timestamp,
                 $chunkEndDate->timestamp
             );
         
             // Log chunk yang di-dispatch
-            \Log::info("Chunk {$chunkCount}: {$currentDate->toDateString()} - {$chunkEndDate->toDateString()}");
+            // \Log::info("Chunk {$chunkCount}: {$currentDate->toDateString()} - {$chunkEndDate->toDateString()}");
         
             // Update currentDate ke hari setelah chunkEndDate
             $currentDate = $chunkEndDate->addDay();
@@ -78,6 +78,6 @@ class FetchShopeeOrdersJob implements ShouldQueue
         }
 
         // Log jumlah chunk yang di-dispatch (opsional)
-        \Log::info("Total chunks dispatched: {$chunkCount}, calculated: {$totalChunks}");
+        // \Log::info("Total chunks dispatched: {$chunkCount}, calculated: {$totalChunks}");
     }
 }

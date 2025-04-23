@@ -15,7 +15,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use App\Services\ShopeeTokenService;
 
-class ProcessShopeeOrderChunk implements ShouldQueue
+class ProcessShopeeOrderLastYearChunk implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -35,10 +35,10 @@ class ProcessShopeeOrderChunk implements ShouldQueue
 
     public function handle()
     {
-        $cacheKey = "shopee_sync_{$this->user->id}";
+        $cacheKey = "shopee_sync_last_year_{$this->user->id}";
         $lockKey = $cacheKey . '_lock';
         $lock = Cache::lock($lockKey, 10);
-        \Log::info("Processing chunk: {$this->timeFrom} to {$this->timeTo}");
+        // \Log::info("Processing chunk: {$this->timeFrom} to {$this->timeTo}");
 
         try {
             $lock->block(5);

@@ -3,20 +3,20 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Jobs\FetchShopeeOrdersJob;
+use App\Jobs\FetchShopeeOrdersLastYearJob;
 use Illuminate\Support\Facades\Cache;
 
-class ShopeeSyncController extends Controller
+class ShopeeSyncLastYearController extends Controller
 {
     public function sync()
     {
-        FetchShopeeOrdersJob::dispatch(auth()->user());
+        FetchShopeeOrdersLastYearJob::dispatch(auth()->user());
         return back()->with('status', 'Sinkronisasi dimulai!');
     }
 
     public function progress()
     {
-        $progress = Cache::get("shopee_sync_".auth()->id(), [
+        $progress = Cache::get("shopee_sync_last_year_".auth()->id(), [
             'progress' => 0,
             'current_period' => '',
             'processed' => 0,

@@ -24,7 +24,7 @@ new class extends Component {
         // $this->shopData = $this->get_shop_info();
         // $this->itemData = $this->get_item_list();
         // $this->orderData = $this->get_order_list();
-        // $this->orderDetail = $this->get_order_detail('2504220GWR2Q9A');
+        $this->orderDetail = $this->get_order_detail('2504220GWR2Q9A');
     }
 
     public function loadShopInfo() {
@@ -107,7 +107,7 @@ new class extends Component {
                     :border="true"
                 />
                 <div class="flex justify-end gap-2">
-                    <form method="POST" action="/sinkronisasi/sync-pesanan-shopee">
+                    <form method="POST" action="/sinkronisasi/sync-last-year-pesanan-shopee">
                         @csrf
                         <x-button type="submit">Mulai Sinkronisasi</x-button>
                     </form>
@@ -123,7 +123,7 @@ new class extends Component {
             }" 
             x-init="
                 intervalId = setInterval(() => {
-                    fetch('/sync-progress')
+                    fetch('/sync-last-year-progress')
                         .then(res => res.json())
                         .then(data => {
                             progress = data.progress;
@@ -135,7 +135,7 @@ new class extends Component {
                                 clearInterval(intervalId);
                                 setTimeout(() => {
                                     showProgress = false;
-                                    fetch('/clear-sync-cache');
+                                    fetch('/clear-sync-last-year-cache');
                                 }, 5000);
                             }
                         });
@@ -163,6 +163,11 @@ new class extends Component {
                     <pre class="bg-gray-100 p-4 rounded">{{ json_encode(json_decode(Storage::get("shopee_orders/".auth()->id().".json")), JSON_PRETTY_PRINT) }}</pre>
                 </div>
             @endif
+
+            <div class="mt-8">
+                <h2 class="text-xl font-bold mb-4">Data Order SN:</h2>
+                <pre class="bg-gray-100 p-4 rounded">{{ json_encode($orderDetail, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+            </div>
 
         </x-app.container>
     @endvolt
