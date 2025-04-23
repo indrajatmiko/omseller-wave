@@ -23,8 +23,8 @@ new class extends Component {
 
         // $this->shopData = $this->get_shop_info();
         // $this->itemData = $this->get_item_list();
-        $this->orderData = $this->get_order_list();
-        $this->orderDetail = $this->get_order_detail('2504220GWR2Q9A');
+        // $this->orderData = $this->get_order_list();
+        // $this->orderDetail = $this->get_order_detail('2504220GWR2Q9A');
     }
 
     public function loadShopInfo() {
@@ -107,21 +107,63 @@ new class extends Component {
                     :border="true"
                 />
                 <div class="flex justify-end gap-2">
-                    @if($this->showAuthButton)
-                        <x-button tag="a" href="/sinkronisasi/auth-shopee">Authentikasi Shopee</x-button>
-                    @endif
+                    <form method="POST" action="/sinkronisasi/sync-pesanan-shopee">
+                        @csrf
+                        <x-button type="submit">Mulai Sinkronisasi</x-button>
+                    </form>
                 </div>
             </div>
-            <div>
-                <h2>get_order_list:</h2>
-                <pre>{{ json_encode($orderData, JSON_PRETTY_PRINT) }}</pre>
+
+            <div x-data="{
+                progress: 0,
+                currentPeriod: '',
+                orderCount: 0,
+                showProgress: false,
+                intervalId: null
+            }" 
+            x-init="
+                intervalId = setInterval(() => {
+                    fetch('/sync-progress')
+                        .then(res => res.json())
+                        .then(data => {
+                            progress = data.progress;
+                            currentPeriod = data.current_period;
+                            orderCount = data.order_count;
+                            showProgress = progress < 100;
+                            
+                            if (progress >= 100) {
+                                clearInterval(intervalId);
+                                setTimeout(() => {
+                                    showProgress = false;
+                                    fetch('/clear-sync-cache');
+                                }, 5000);
+                            }
+                        });
+                }, 2000)"
+            >
+                <!-- Progress Bar -->
+                <div x-show="showProgress" class="mb-8">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium" x-text="currentPeriod"></span>
+                        <span class="text-sm" x-text="`${progress.toFixed(1)}%`"></span>
+                    </div>
+                    <div class="h-4 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 transition-all duration-500" 
+                             :style="`width: ${progress}%`"></div>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-600">
+                        Total pesanan terkumpul: <span x-text="orderCount"></span>
+                    </p>
+                </div>
             </div>
-            <div>
-                <h2>get_order_detail:</h2>
-                <pre>{{ json_encode($orderDetail, JSON_PRETTY_PRINT) }}</pre>
-            </div>
+
+            @if(Storage::exists("shopee_orders/".auth()->id().".json"))
+                <div class="mt-8">
+                    <h2 class="text-xl font-bold mb-4">Data Order SN:</h2>
+                    <pre class="bg-gray-100 p-4 rounded">{{ json_encode(json_decode(Storage::get("shopee_orders/".auth()->id().".json")), JSON_PRETTY_PRINT) }}</pre>
+                </div>
+            @endif
+
         </x-app.container>
-
-
     @endvolt
 </x-layouts.app>

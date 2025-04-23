@@ -19,7 +19,7 @@
         "intervention/image": "^2.7",
         "lab404/laravel-impersonate": "^1.7.5",
         "laravel/folio": "^1.1",
-        "laravel/framework": "^11.0",
+        "laravel/framework": "^11.6",
         "laravel/pail": "^1.2",
         "laravel/tinker": "^2.7",
         "laravel/ui": "^4.5",
@@ -78,7 +78,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"npm run dev\" --names=server,queue,logs,vite"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=3\" \"npm run dev\" --names=server,queue,logs,vite"
 
         ]
     },
