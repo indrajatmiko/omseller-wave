@@ -1,6 +1,6 @@
 [
     {
-        "main_category": "Kategori A",
+        "main_category": "A",
         "subcategories": [
             {
                 "name": "Kesehatan",
@@ -109,7 +109,7 @@
         ]
     },
     {
-        "main_category": "Kategori B",
+        "main_category": "B",
         "subcategories": [
             {
                 "name": "Elektronik",
@@ -162,7 +162,7 @@
         ]
     },
     {
-        "main_category": "Kategori C",
+        "main_category": "C",
         "subcategories": [
             {
                 "name": "Elektronik",
@@ -199,7 +199,7 @@
         ]
     },
     {
-        "main_category": "Kategori D",
+        "main_category": "D",
         "subcategories": [
             {
                 "name": "Komputer & Aksesoris",
@@ -224,7 +224,7 @@
         ]
     },
     {
-        "main_category": "Kategori E",
+        "main_category": "E",
         "subcategories": [
             {
                 "name": "Sepeda Motor",
