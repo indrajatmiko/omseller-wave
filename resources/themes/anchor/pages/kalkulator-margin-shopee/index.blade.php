@@ -453,6 +453,7 @@ new class extends Component {
                                 @error('biaya_operasional') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                             </div>
                         </div>
+                        <hr class="my-4 border-t-2 border-gray-100 dark:border-gray-200 rounded">
                         <div>
                             <button type="submit"
                                 class="w-full px-4 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:ring-opacity-50 transition font-semibold text-lg"
@@ -474,19 +475,16 @@ new class extends Component {
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                             <div>
-                                <label for="margin" class="block mb-2 text-base font-bold text-gray-800 dark:text-gray-100">Persentase Keuntungan</label>
-                                <input type="text" id="margin" wire:model="margin"
-                                    class="block w-full mt-1 border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-black dark:focus:border-white focus:ring-opacity-50 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-bold transition"
-                                    readonly>
-                                @error('margin')
-                                    <span class="text-xs text-red-500">{{ $message }}</span>
-                                @enderror
+                                <label class="block mb-2 text-base font-bold text-gray-800 dark:text-gray-100">Keuntungan</label>
+                                <div class="w-full py-3 px-4 rounded-lg bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-2xl font-extrabold text-center shadow border border-blue-200 dark:border-blue-700 select-all transition">
+                                    {{ $keuntungan_rupiah }}
+                                </div>
                             </div>
                             <div>
-                                <label for="keuntungan_rupiah" class="block mb-2 text-base font-bold text-gray-800 dark:text-gray-100">Keuntungan</label>
-                                <input type="text" id="keuntungan_rupiah" wire:model="keuntungan_rupiah"
-                                    class="block w-full mt-1 border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-black dark:focus:border-white focus:ring-opacity-50 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-bold transition"
-                                    readonly>
+                                <label class="block mb-2 text-base font-bold text-gray-800 dark:text-gray-100">Persentase</label>
+                                <div class="w-full py-3 px-4 rounded-lg bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-200 text-2xl font-extrabold text-center shadow border border-green-200 dark:border-green-700 select-all transition">
+                                    {{ $margin }}
+                                </div>
                             </div>
                         </div>
                         <div class="text-sm italic text-red-500 mt-4 ml-2">
