@@ -135,7 +135,7 @@
                     @endforeach
                 </div>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-xl flex items-center justify-between mt-4">
+            <div class="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 flex items-center justify-between mt-2 p-4 mb-4">
                 <div class="flex space-x-6 items-center">
                     <img src="https://i.pinimg.com/originals/25/0c/a0/250ca0295215879bd0d53e3a58fa1289.png" class="w-auto h-24 rounded-lg"/>
                     <div>
@@ -146,12 +146,12 @@
                 </div>
                    
                 <div class="flex space-x-2 items-center">
-                    <div class="bg-gray-300 rounded-md p-2 flex items-center">
-                        <a href="datacenter-organik-iklan/kontribusi-penjualan-iklan"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg></a>
+                    <div class="bg-gray-600 rounded-md p-2 flex items-center">
+                        <a href="datacenter-organik-iklan/kontribusi-penjualan-iklan"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#FFF" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg></a>
                     </div>
                 </div>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-xl flex items-center justify-between mt-6">
+            <div class="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 flex items-center justify-between mt-2 p-4 mb-4">
                 <div class="flex space-x-6 items-center">
                     <img src="https://i.pinimg.com/originals/25/0c/a0/250ca0295215879bd0d53e3a58fa1289.png" class="w-auto h-24 rounded-lg"/>
                     <div>
@@ -162,12 +162,12 @@
                 </div>
                    
                 <div class="flex space-x-2 items-center">
-                    <div class="bg-gray-300 rounded-md p-2 flex items-center">
-                        <a href="datacenter-organik-iklan/kontribusi-unit-terjual-iklan"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg></a>
+                    <div class="bg-gray-600 rounded-md p-2 flex items-center">
+                        <a href="datacenter-organik-iklan/kontribusi-unit-terjual-iklan"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#FFF" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg></a>
                     </div>
                 </div>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-xl flex items-center justify-between mt-6">
+            <div class="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 flex items-center justify-between mt-2 p-4 mb-4">
                 <div class="flex space-x-6 items-center">
                     <img src="https://i.pinimg.com/originals/25/0c/a0/250ca0295215879bd0d53e3a58fa1289.png" class="w-auto h-24 rounded-lg"/>
                     <div>
@@ -178,8 +178,8 @@
                 </div>
                    
                 <div class="flex space-x-2 items-center">
-                    <div class="bg-gray-300 rounded-md p-2 flex items-center">
-                        <a href="datacenter-organik-iklan/blended-acos"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg></a>
+                    <div class="bg-gray-600 rounded-md p-2 flex items-center">
+                        <a href="datacenter-organik-iklan/blended-acos"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#FFF" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg></a>
                     </div>
                 </div>
             </div>

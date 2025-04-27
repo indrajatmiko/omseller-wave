@@ -35,6 +35,7 @@ new class extends Component {
     public $kategoriProduk = [];
     public $tipePenjual = 'non_star';
     public $q_kalkulator;
+    public $komisi_affiliasi = 0;
 
     public function mount()
     {
@@ -179,9 +180,10 @@ new class extends Component {
         $potongan_iklan = ($this->biaya_iklan / 100) * $harga_jual;
         $potongan_operasional = ($this->biaya_operasional / 100) * $harga_jual;
         $biaya_toko = $potongan_iklan + $potongan_operasional;
+        $potongan_affiliasi = ($this->komisi_affiliasi / 100) * $harga_jual;
 
         // Hitung keuntungan bersih
-        $keuntungan_bersih = $harga_jual - $harga_modal - $potongan_admin - $biaya_tambahan - $biaya_toko;
+        $keuntungan_bersih = $harga_jual - $harga_modal - $potongan_admin - $biaya_tambahan - $biaya_toko - $potongan_affiliasi;
 
         // Hitung margin berdasarkan harga jual
         if ($harga_jual > 0) {
@@ -398,7 +400,34 @@ new class extends Component {
                             </div>
                         </div>
                         <hr class="my-4 border-t-2 border-gray-100 dark:border-gray-200 rounded">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                            <div>
+                                <label for="komisi_affiliasi" class="block mb-2 text-base font-bold text-gray-800 dark:text-gray-100">Komisi Affiliasi (%)</label>
+                                <div class="relative">
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        max="100"
+                                        id="komisi_affiliasi"
+                                        wire:model="komisi_affiliasi"
+                                        class="block w-full mt-1 pr-10 border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:border-black dark:focus:border-white focus:ring-opacity-50 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition"
+                                        value="0"
+                                        required
+                                    >
+                                    <span class="absolute right-3 top-2.5 text-gray-500 dark:text-gray-400 font-bold select-none">%</span>
+                                </div>
+                                @php
+                                    $harga_jual_num = (float) preg_replace('/\D/', '', $harga_jual);
+                                    $potongan_affiliasi = ($komisi_affiliasi ?? 0) / 100 * $harga_jual_num;
+                                @endphp
+                                @if($harga_jual_num > 0 && $komisi_affiliasi > 0)
+                                    <div class="text-sm text-blue-600 mt-1 ml-2">
+                                        Alokasi Affiliasi: <span class="font-bold">Rp {{ number_format($potongan_affiliasi, 0, ',', '.') }}</span> / produk
+                                    </div>
+                                @endif
+                                @error('komisi_affiliasi') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            </div>
                             <div>
                                 <label for="biaya_iklan" class="block mb-2 text-base font-bold text-gray-800 dark:text-gray-100">Biaya Iklan (%)</label>
                                 <div class="relative">
@@ -416,7 +445,6 @@ new class extends Component {
                                     <span class="absolute right-3 top-2.5 text-gray-500 dark:text-gray-400 font-bold select-none">%</span>
                                 </div>
                                 @php
-                                    $harga_jual_num = (float) preg_replace('/\D/', '', $harga_jual);
                                     $potongan_iklan = ($biaya_iklan ?? 0) / 100 * $harga_jual_num;
                                 @endphp
                                 @if($harga_jual_num > 0 && $biaya_iklan > 0)
@@ -476,13 +504,13 @@ new class extends Component {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                             <div>
                                 <label class="block mb-2 text-base font-bold text-gray-800 dark:text-gray-100">Keuntungan</label>
-                                <div class="w-full py-3 px-4 rounded-lg bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-2xl font-extrabold text-center shadow border border-blue-200 dark:border-blue-700 select-all transition">
+                                <div class="w-full py-3 px-4 rounded-lg bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-200 text-2xl font-extrabold text-center shadow border border-green-200 dark:border-green-700 select-all transition">
                                     {{ $keuntungan_rupiah }}
                                 </div>
                             </div>
                             <div>
                                 <label class="block mb-2 text-base font-bold text-gray-800 dark:text-gray-100">Persentase</label>
-                                <div class="w-full py-3 px-4 rounded-lg bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-200 text-2xl font-extrabold text-center shadow border border-green-200 dark:border-green-700 select-all transition">
+                                <div class="w-full py-3 px-4 rounded-lg bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-2xl font-extrabold text-center shadow border border-blue-200 dark:border-blue-700 select-all transition">
                                     {{ $margin }}
                                 </div>
                             </div>

@@ -46,6 +46,7 @@ new class extends Component {
 
             $penjualan = PerformaToko::select('bulan', DB::raw('SUM(penjualan_pesanan_siap_dikirim) as total_penjualan'))
                 ->where('tahun', $this->tahunAktif)
+                ->where('tingkat_konversi_pesanan_siap_dikirim', '>', 0)
                 ->groupBy('bulan')
                 ->get()
                 ->keyBy('bulan');

@@ -29,7 +29,8 @@
                         'tahun',
                         DB::raw('SUM(penjualan_pesanan_siap_dikirim) as total_penjualan'),
                         DB::raw('0 as penjualan_iklan'),
-                        DB::raw('0 as biaya_iklan')
+                        DB::raw('0 as biaya_iklan'),
+                        DB::raw('0 as jumlah_klik')
                     )
                     ->where('tingkat_konversi_pesanan_siap_dikirim', '>', 0)
                     ->where('tahun', $this->tahunAktif)
@@ -40,7 +41,8 @@
                         'tahun',
                         DB::raw('0 as total_penjualan'),
                         DB::raw('SUM(omzet_penjualan) as penjualan_iklan'),
-                        DB::raw('SUM(biaya) as biaya_iklan')
+                        DB::raw('SUM(biaya) as biaya_iklan'),
+                        DB::raw('SUM(jumlah_klik) as jumlah_klik')
                     )
                     ->where('tahun', $this->tahunAktif)
                     ->groupBy('tahun', 'bulan');
@@ -52,7 +54,8 @@
                         return [
                             'total_penjualan' => $monthData->sum('total_penjualan'),
                             'penjualan_iklan' => $monthData->sum('penjualan_iklan'),
-                            'biaya_iklan' => $monthData->sum('biaya_iklan')
+                            'biaya_iklan' => $monthData->sum('biaya_iklan'),
+                            'jumlah_klik' => $monthData->sum('jumlah_klik')
                         ];
                     });
             });
@@ -80,6 +83,8 @@
                     'total' => $data['total_penjualan'],
                     'iklan' => $data['penjualan_iklan'],
                     'biaya' => $data['biaya_iklan'],
+                    'jumlah_klik' => $data['jumlah_klik'] ?? 0,
+                    'biaya_perklik' => ($data['jumlah_klik'] ?? 0) > 0 ? ($data['biaya_iklan'] / $data['jumlah_klik']) : 0,
                     'persen_iklan' => $data['total_penjualan'] ? 
                         ($data['penjualan_iklan'] / $data['total_penjualan'] * 100) : 0,
                     'mom' => $mom,
@@ -185,13 +190,15 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bulan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Penjualan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Penjualan Iklan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">% Iklan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Biaya Iklan</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">MoM</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">YoY</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Bulan</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total Penjualan (Rp)</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Penjualan Iklan (Rp)</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">% Iklan</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Biaya Iklan (Rp)</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Jumlah Klik</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Biaya per Klik (Rp)</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">MoM (%)</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">YoY (%)</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -200,6 +207,7 @@
                             $total = $data['total'] ?? 0;
                             $iklan = $data['iklan'] ?? 0;
                             $biaya = $data['biaya'] ?? 0;
+                            $jumlah_klik = $data['jumlah_klik'] ?? 0;
                             $persenIklan = $total > 0 ? ($iklan / $total * 100) : 0;
                             $isCurrentMonth = $month == $bulanAktif;
                             $totalClass = $total > 0 ? 'text-green-500' : 'text-red-500';
@@ -216,11 +224,19 @@
                                 {{ number_format($persenIklan, 2) }}%
                             </td>
                             <td class="px-6 py-4 text-right text-orange-600">@moneyShort($biaya)</td>
+                            <td class="px-6 py-4 text-right text-indigo-600">{{ $jumlah_klik }}</td>
+                            <td class="px-6 py-4 text-right text-indigo-600">
+                                @if(($jumlah_klik ?? 0) > 0)
+                                    {{ number_format($data['biaya_perklik'], 0, ',', '.') }}
+                                @else
+                                    -
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-right {{ ($data['mom'] ?? 0) >= 0 ? 'text-green-500' : 'text-red-500' }}">
-                                {{ number_format($data['mom'] ?? 0, 2) }}%
+                                {{ number_format($data['mom'] ?? 0, 2) }}
                             </td>
                             <td class="px-6 py-4 text-right {{ ($data['yoy'] ?? 0) >= 0 ? 'text-green-500' : 'text-red-500' }}">
-                                {{ number_format($data['yoy'] ?? 0, 2) }}%
+                                {{ number_format($data['yoy'] ?? 0, 2) }}
                             </td>
                         </tr>
                         @endforeach
