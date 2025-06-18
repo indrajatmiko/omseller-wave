@@ -21,6 +21,7 @@
         "laravel/folio": "^1.1",
         "laravel/framework": "^11.6",
         "laravel/pail": "^1.2",
+        "laravel/sanctum": "^4.1",
         "laravel/tinker": "^2.7",
         "laravel/ui": "^4.5",
         "livewire/livewire": "^3.0",

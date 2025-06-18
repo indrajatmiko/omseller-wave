@@ -518,7 +518,7 @@ new class extends Component {
                         <div class="text-sm italic text-red-500 mt-4 ml-2">
                             <strong><u>Catatan:</u></strong>
                             <ol class="list-decimal ml-6">
-                                <li>Belum termasuk biaya Diskon dan Voucher toko.</li>
+                                <li>Belum termasuk biaya Diskon, Promosi, Campaign dan Voucher toko.</li>
                                 <li>Shopee berhak sewaktu-waktu mengubah, menambah, atau memodifikasi Syarat & Ketentuan tanpa pemberitahuan terlebih dahulu.</li>
                             </ol>
                         </div>

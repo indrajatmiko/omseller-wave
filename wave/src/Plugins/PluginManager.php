@@ -21,7 +21,7 @@ class PluginManager
     {
         $installedPlugins = $this->getInstalledPlugins();
         
-        // \Log::info("Installed plugins: " . json_encode($installedPlugins));
+        \Log::info("Installed plugins: " . json_encode($installedPlugins));
 
         foreach ($installedPlugins as $pluginName) {
             $studlyPluginName = Str::studly($pluginName);

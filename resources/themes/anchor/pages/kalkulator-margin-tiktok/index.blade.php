@@ -174,9 +174,9 @@ new class extends Component {
         }
 
         if ($this->promo_xtra) {
-            $promoXtra = $harga_jual * 0.014; // 1.4%
-            $this->promoXtraLimited = $promoXtra > 10000;
-            $biaya_tambahan += min($promoXtra, 10000);
+            $promoXtra = $harga_jual * 0.018; // 1.8%
+            $this->promoXtraLimited = $promoXtra > 50000;
+            $biaya_tambahan += min($promoXtra, 50000);
         } else {
             $this->promoXtraLimited = false;
         }
@@ -481,11 +481,11 @@ new class extends Component {
                             <div>
                                 <div class="flex items-center mb-2">
                                     <input id="promo_xtra" type="checkbox" wire:model="promo_xtra" class="w-5 h-5 text-black dark:text-white bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded focus:ring-black dark:focus:ring-white focus:ring-2">
-                                    <label for="promo_xtra" class="ml-3 text-base font-bold text-gray-900 dark:text-gray-100">Promo Xtra</label>
+                                    <label for="promo_xtra" class="ml-3 text-base font-bold text-gray-900 dark:text-gray-100">Layanan Mall</label>
                                 </div>
                                 @if($promoXtraLimited)
                                     <div class="text-sm text-blue-600 mt-1 ml-8">
-                                        Potongan Promo Xtra dibatasi maksimal Rp 10.000
+                                        Biaya Layanan Mall dibatasi maksimal Rp 50.000
                                     </div>
                                 @endif
                             </div>
@@ -609,7 +609,7 @@ new class extends Component {
                         <div class="text-sm italic text-red-500 mt-4 ml-2">
                             <strong><u>Catatan:</u></strong>
                             <ol class="list-decimal ml-6">
-                                <li>Belum termasuk biaya Diskon dan Voucher toko.</li>
+                                <li>Belum termasuk biaya Diskon, Promosi, Campaign dan Voucher toko.</li>
                                 <li>Tiktok Shop berhak sewaktu-waktu mengubah, menambah, atau memodifikasi Syarat & Ketentuan tanpa pemberitahuan terlebih dahulu.</li>
                             </ol>
                         </div>
