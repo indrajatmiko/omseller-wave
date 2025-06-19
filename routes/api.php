@@ -24,7 +24,7 @@ Route::middleware('auth:api')->group(function () {
         return $request->user(); 
     });
     Route::post('/scrape-data', [App\Http\Controllers\Api\ScrapeDataController::class, 'store']);
-    Route::get('/scraped-dates/{campaign_id}', [ScrapeDataController::class, 'getScrapedDates']);
+    Route::get('/scraped-dates/{campaign_id}', [App\Http\Controllers\Api\ScrapeDataController::class, 'getScrapedDates']);
 
 });
 
