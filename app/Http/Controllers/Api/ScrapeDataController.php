@@ -154,28 +154,20 @@ class ScrapeDataController extends Controller
         return $base;
     }
 
-    public function checkDates(Request $request)
+    public function getCampaignDates(Request $request, $campaign_id)
     {
-        $validator = Validator::make($request->all(), [
-            'campaign_id' => 'required|integer',
-            'dates' => 'required|array',
-            'dates.*' => 'required|date_format:Y-m-d',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['message' => 'Data tidak valid.', 'errors' => $validator->errors()], 422);
-        }
-
-        $validated = $validator->validated();
         $user = Auth::user();
 
-        // Cari tanggal mana saja dari yang diminta yang sudah ada di database
+        // Validasi sederhana untuk memastikan campaign_id adalah angka
+        if (!is_numeric($campaign_id)) {
+            return response()->json(['message' => 'ID Kampanye tidak valid.'], 400);
+        }
+
+        // Ambil semua tanggal yang sudah tersimpan untuk user dan kampanye ini
         $existingDates = CampaignReport::where('user_id', $user->id)
-            ->where('campaign_id', $validated['campaign_id'])
-            ->whereIn('scrape_date', $validated['dates'])
-            ->pluck('scrape_date') // Ambil hanya kolom scrape_date
+            ->where('campaign_id', $campaign_id)
+            ->pluck('scrape_date')
             ->map(function ($date) {
-                // Format kembali ke Y-m-d untuk konsistensi
                 return $date->format('Y-m-d');
             })
             ->all();
