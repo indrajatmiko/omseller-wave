@@ -24,3 +24,5 @@ Wave::api();
 Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/posts', '\App\Http\Controllers\Api\ApiController@posts');
 });
+
+Route::post('/scrape-data', [App\Http\Controllers\Api\ScrapeDataController::class, 'store'])->middleware('auth:sanctum');
