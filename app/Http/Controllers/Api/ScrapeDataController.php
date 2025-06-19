@@ -14,7 +14,6 @@ class ScrapeDataController extends Controller
 {
     public function store(Request $request)
     {
-        // Validasi data tingkat atas
         $validator = Validator::make($request->all(), [
             'campaign_id' => 'required|integer',
             'aggregatedData' => 'required|array|min:1',
@@ -29,21 +28,21 @@ class ScrapeDataController extends Controller
         $validated = $validator->validated();
         $user = Auth::user();
         $reportsCreated = 0;
-        $reportsSkipped = 0;
+        $reportsUpdated = 0; // Ganti skipped menjadi updated
 
         foreach ($validated['aggregatedData'] as $dailyData) {
             try {
-                // Semua operasi untuk satu hari dibungkus dalam transaksi untuk menjaga integritas data anak
-                DB::transaction(function () use ($user, $validated, $dailyData, &$reportsCreated, &$reportsSkipped) {
+                // Semua operasi untuk satu hari dibungkus dalam transaksi
+                DB::transaction(function () use ($user, $validated, $dailyData, &$reportsCreated, &$reportsUpdated) {
                     
                     $data = $dailyData['data'];
                     $productInfo = $data['productInfo'] ?? [];
                     $perfMetrics = $data['performanceMetrics'] ?? [];
 
-                    // Metode firstOrCreate akan mencoba membuat record baru dengan data dari parameter kedua.
-                    // Jika record dengan atribut dari parameter pertama sudah ada, ia akan mengambil record tersebut
-                    // tanpa mencoba membuat yang baru, sehingga tidak ada error UNIQUE constraint.
-                    $report = CampaignReport::firstOrCreate(
+                    // PERBAIKAN UTAMA: Gunakan updateOrCreate
+                    // Parameter pertama: Atribut untuk mencari record (kunci unik kita).
+                    // Parameter kedua: Atribut untuk diisi/diperbarui.
+                    $report = CampaignReport::updateOrCreate(
                         [
                             'user_id' => $user->id,
                             'campaign_id' => $validated['campaign_id'],
@@ -72,42 +71,39 @@ class ScrapeDataController extends Controller
                         ]
                     );
 
-                    // Properti $report->wasRecentlyCreated akan bernilai true HANYA jika firstOrCreate
-                    // berhasil membuat record baru. Jika record sudah ada, nilainya akan false.
+                    // Periksa apakah record baru dibuat atau hanya diperbarui.
                     if ($report->wasRecentlyCreated) {
                         $reportsCreated++;
-                        
-                        // Simpan data anak hanya jika laporan utama baru dibuat
-                        if (!empty($data['keywordPerformance'])) {
-                            foreach ($data['keywordPerformance'] as $kw) {
-                                $report->keywordPerformances()->create($this->flattenMetrics($kw));
-                            }
-                        }
-
-                        if (!empty($data['recommendationPerformance'])) {
-                            foreach ($data['recommendationPerformance'] as $rec) {
-                                $report->recommendationPerformances()->create($this->flattenMetrics($rec, true));
-                            }
-                        }
                     } else {
-                        // Jika record sudah ada, kita lewati dan catat. Tidak ada error yang terjadi.
-                        $reportsSkipped++;
+                        $reportsUpdated++;
+                        // Jika diperbarui, hapus data anak lama untuk diganti dengan yang baru
+                        $report->keywordPerformances()->delete();
+                        $report->recommendationPerformances()->delete();
+                    }
+                    
+                    // Simpan data anak (keywords dan recommendations) baik untuk record baru maupun yang diperbarui.
+                    if (!empty($data['keywordPerformance'])) {
+                        foreach ($data['keywordPerformance'] as $kw) {
+                            $report->keywordPerformances()->create($this->flattenMetrics($kw));
+                        }
+                    }
+
+                    if (!empty($data['recommendationPerformance'])) {
+                        foreach ($data['recommendationPerformance'] as $rec) {
+                            $report->recommendationPerformances()->create($this->flattenMetrics($rec, true));
+                        }
                     }
                 });
             } catch (\Throwable $e) {
-                // Blok catch ini sekarang hanya akan menangkap error tak terduga lainnya.
-                Log::error('Failed to store scrape data for user ' . $user->id, [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                return response()->json(['message' => 'Terjadi kesalahan internal saat menyimpan data: ' . $e->getMessage()], 500);
+                Log::error('Failed to store scrape data for user ' . $user->id, ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                return response()->json(['message' => 'Kesalahan internal: ' . $e->getMessage()], 500);
             }
         }
 
         return response()->json([
             'message' => 'Data berhasil diproses.',
             'created' => $reportsCreated,
-            'skipped' => $reportsSkipped,
+            'updated' => $reportsUpdated, // Ganti skipped menjadi updated
         ], 200);
     }
 
