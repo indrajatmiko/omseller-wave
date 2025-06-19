@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Throwable;
-use Carbon\Carbon; // Import Carbon
+use Carbon\Carbon;
 
 class ScrapeDataController extends Controller
 {
@@ -37,57 +37,29 @@ class ScrapeDataController extends Controller
                 DB::transaction(function () use ($user, $validated, $dailyData, &$reportsCreated, &$reportsUpdated) {
                     
                     $data = $dailyData['data'];
-                    $productInfo = $data['productInfo'] ?? [];
-                    $perfMetrics = $data['performanceMetrics'] ?? [];
-
-                    // Data untuk laporan utama
-                    $reportValues = [
-                        'date_range_text' => $productInfo['rentang_tanggal'] ?? null,
-                        'nama_produk' => $productInfo['nama_produk'] ?? null,
-                        'gambar_url' => $productInfo['gambar'] ?? null,
-                        'status_iklan' => $productInfo['status_iklan'] ?? null,
-                        'modal' => $productInfo['modal'] ?? null,
-                        'periode_iklan' => $productInfo['periode_iklan'] ?? null,
-                        'penempatan_iklan' => $productInfo['penempatan_iklan'] ?? null,
-                        'mode_bidding' => $productInfo['mode_bidding'] ?? null,
-                        'bidding_dinamis' => $productInfo['bidding_dinamis'] ?? null,
-                        'target_roas' => $productInfo['target_roas'] ?? null,
-                        'dilihat' => $perfMetrics['dilihat'] ?? null,
-                        'klik' => $perfMetrics['klik'] ?? null,
-                        'persentase_klik' => $perfMetrics['persentase_klik'] ?? null,
-                        'biaya' => $perfMetrics['biaya'] ?? null,
-                        'pesanan' => $perfMetrics['pesanan'] ?? null,
-                        'produk_terjual' => $perfMetrics['produk_terjual_di_iklan'] ?? $perfMetrics['produk_terjual'] ?? null,
-                        'omzet_iklan' => $perfMetrics['omzet_iklan'] ?? null,
-                        'efektivitas_iklan' => $perfMetrics['efektivitas_iklan_(roas)'] ?? null,
-                        'cir' => $perfMetrics['cir_(acos)'] ?? null,
-                    ];
                     
-                    // PERBAIKAN UTAMA: Normalisasi tipe data sebelum query
+                    $reportValues = $this->getReportValues($data);
+                    
                     $uniqueAttributes = [
                         'user_id' => (int) $user->id,
                         'campaign_id' => (int) $validated['campaign_id'],
-                        // Casting string 'YYYY-MM-DD' menjadi objek Carbon/DateTime
                         'scrape_date' => Carbon::parse($dailyData['scrapeDate'])->startOfDay(),
                     ];
                     
-                    // Gunakan updateOrCreate dengan atribut yang sudah dinormalisasi
                     $report = CampaignReport::updateOrCreate($uniqueAttributes, $reportValues);
 
-                    // Periksa apakah record baru dibuat atau hanya diperbarui.
                     if ($report->wasRecentlyCreated) {
                         $reportsCreated++;
                     } else {
                         $reportsUpdated++;
-                        // Jika diperbarui, hapus data anak lama untuk diganti dengan yang baru
                         $report->keywordPerformances()->delete();
                         $report->recommendationPerformances()->delete();
                     }
                     
-                    // Simpan data anak (keywords dan recommendations)
                     if (!empty($data['keywordPerformance'])) {
                         foreach ($data['keywordPerformance'] as $kw) {
-                            $report->keywordPerformances()->create($this->flattenMetrics($kw));
+                            // PERBAIKAN: Tambahkan argumen kedua 'false'
+                            $report->keywordPerformances()->create($this->flattenMetrics($kw, false));
                         }
                     }
 
@@ -102,7 +74,6 @@ class ScrapeDataController extends Controller
                     'message' => $e->getMessage(),
                     'file' => $e->getFile(),
                     'line' => $e->getLine(),
-                    'trace' => $e->getTraceAsString()
                 ]);
                 return response()->json(['message' => 'Kesalahan internal server: ' . $e->getMessage()], 500);
             }
@@ -115,20 +86,47 @@ class ScrapeDataController extends Controller
         ], 200);
     }
 
-    private function flattenMetrics(array $item, string $type): array
+    private function getReportValues(array $data): array
+    {
+        $productInfo = $data['productInfo'] ?? [];
+        $perfMetrics = $data['performanceMetrics'] ?? [];
+        return [
+            'date_range_text' => $productInfo['rentang_tanggal'] ?? null,
+            'nama_produk' => $productInfo['nama_produk'] ?? null,
+            'gambar_url' => $productInfo['gambar'] ?? null,
+            'status_iklan' => $productInfo['status_iklan'] ?? null,
+            'modal' => $productInfo['modal'] ?? null,
+            'periode_iklan' => $productInfo['periode_iklan'] ?? null,
+            'penempatan_iklan' => $productInfo['penempatan_iklan'] ?? null,
+            'mode_bidding' => $productInfo['mode_bidding'] ?? null,
+            'bidding_dinamis' => $productInfo['bidding_dinamis'] ?? null,
+            'target_roas' => $productInfo['target_roas'] ?? null,
+            'dilihat' => $perfMetrics['dilihat'] ?? null,
+            'klik' => $perfMetrics['klik'] ?? null,
+            'persentase_klik' => $perfMetrics['persentase_klik'] ?? null,
+            'biaya' => $perfMetrics['biaya'] ?? null,
+            'pesanan' => $perfMetrics['pesanan'] ?? null,
+            'produk_terjual' => $perfMetrics['produk_terjual_di_iklan'] ?? $perfMetrics['produk_terjual'] ?? null,
+            'omzet_iklan' => $perfMetrics['omzet_iklan'] ?? null,
+            'efektivitas_iklan' => $perfMetrics['efektivitas_iklan_(roas)'] ?? null,
+            'cir' => $perfMetrics['cir_(acos)'] ?? null,
+        ];
+    }
+    
+    private function flattenMetrics(array $item, bool $isRecommendation = false): array
     {
         $base = [];
-        if ($type === 'keyword') {
+        if ($isRecommendation) {
+            $base = [
+                'penempatan' => $item['penempatan'] ?? null,
+                'harga_bid' => $item['harga_bid'] ?? null,
+                'disarankan' => $item['disarankan'] ?? null,
+            ];
+        } else {
             $base = [
                 'kata_pencarian' => $item['kata_pencarian'] ?? null,
                 'tipe_pencocokan' => $item['tipe_pencocokan'] ?? null,
                 'per_klik' => $item['per_klik'] ?? null,
-                'disarankan' => $item['disarankan'] ?? null,
-            ];
-        } elseif ($type === 'recommendation') {
-            $base = [
-                'penempatan' => $item['penempatan'] ?? null,
-                'harga_bid' => $item['harga_bid'] ?? null,
                 'disarankan' => $item['disarankan'] ?? null,
             ];
         }
