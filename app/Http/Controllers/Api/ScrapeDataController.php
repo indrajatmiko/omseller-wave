@@ -86,6 +86,29 @@ class ScrapeDataController extends Controller
         ], 200);
     }
 
+    /**
+     * Mengambil daftar tanggal yang sudah tersimpan untuk kampanye tertentu.
+     * @param int $campaign_id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getScrapedDates($campaign_id)
+    {
+        $user = Auth::user();
+
+        $dates = DB::table('campaign_reports')
+            ->where('user_id', $user->id)
+            ->where('campaign_id', $campaign_id)
+            ->orderBy('scrape_date', 'desc')
+            ->pluck('scrape_date'); // Mengambil hanya kolom scrape_date
+
+        // Format tanggal menjadi Y-m-d untuk konsistensi
+        $formattedDates = $dates->map(function ($date) {
+            return Carbon::parse($date)->format('Y-m-d');
+        });
+
+        return response()->json($formattedDates);
+    }
+
     private function getReportValues(array $data): array
     {
         $productInfo = $data['productInfo'] ?? [];
@@ -152,28 +175,5 @@ class ScrapeDataController extends Controller
         }
         
         return $base;
-    }
-
-    public function getCampaignDates(Request $request, $campaign_id)
-    {
-        $user = Auth::user();
-
-        // Validasi sederhana untuk memastikan campaign_id adalah angka
-        if (!is_numeric($campaign_id)) {
-            return response()->json(['message' => 'ID Kampanye tidak valid.'], 400);
-        }
-
-        // Ambil semua tanggal yang sudah tersimpan untuk user dan kampanye ini
-        $existingDates = CampaignReport::where('user_id', $user->id)
-            ->where('campaign_id', $campaign_id)
-            ->pluck('scrape_date')
-            ->map(function ($date) {
-                return $date->format('Y-m-d');
-            })
-            ->all();
-
-        return response()->json([
-            'existing_dates' => $existingDates,
-        ]);
     }
 }
