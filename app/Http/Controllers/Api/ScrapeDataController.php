@@ -154,24 +154,34 @@ class ScrapeDataController extends Controller
         return $base;
     }
 
-    public function getExistingDates(Request $request, $campaign_id)
+    public function checkDates(Request $request)
     {
-        $user = Auth::user();
+        $validator = Validator::make($request->all(), [
+            'campaign_id' => 'required|integer',
+            'dates' => 'required|array',
+            'dates.*' => 'required|date_format:Y-m-d',
+        ]);
 
-        // Validasi sederhana
-        if (!is_numeric($campaign_id)) {
-            return response()->json(['message' => 'ID Kampanye tidak valid.'], 400);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Data tidak valid.', 'errors' => $validator->errors()], 422);
         }
 
-        // Query yang sangat efisien untuk mengambil hanya kolom tanggal
-        $dates = CampaignReport::where('user_id', $user->id)
-            ->where('campaign_id', $campaign_id)
-            ->pluck('scrape_date') // Hanya ambil kolom 'scrape_date'
+        $validated = $validator->validated();
+        $user = Auth::user();
+
+        // Cari tanggal mana saja dari yang diminta yang sudah ada di database
+        $existingDates = CampaignReport::where('user_id', $user->id)
+            ->where('campaign_id', $validated['campaign_id'])
+            ->whereIn('scrape_date', $validated['dates'])
+            ->pluck('scrape_date') // Ambil hanya kolom scrape_date
             ->map(function ($date) {
-                // Format tanggal menjadi YYYY-MM-DD string
+                // Format kembali ke Y-m-d untuk konsistensi
                 return $date->format('Y-m-d');
-            });
-            
-        return response()->json($dates);
+            })
+            ->all();
+
+        return response()->json([
+            'existing_dates' => $existingDates,
+        ]);
     }
 }
