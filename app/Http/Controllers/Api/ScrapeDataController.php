@@ -153,4 +153,25 @@ class ScrapeDataController extends Controller
         
         return $base;
     }
+
+    public function getExistingDates(Request $request, $campaign_id)
+    {
+        $user = Auth::user();
+
+        // Validasi sederhana
+        if (!is_numeric($campaign_id)) {
+            return response()->json(['message' => 'ID Kampanye tidak valid.'], 400);
+        }
+
+        // Query yang sangat efisien untuk mengambil hanya kolom tanggal
+        $dates = CampaignReport::where('user_id', $user->id)
+            ->where('campaign_id', $campaign_id)
+            ->pluck('scrape_date') // Hanya ambil kolom 'scrape_date'
+            ->map(function ($date) {
+                // Format tanggal menjadi YYYY-MM-DD string
+                return $date->format('Y-m-d');
+            });
+            
+        return response()->json($dates);
+    }
 }
