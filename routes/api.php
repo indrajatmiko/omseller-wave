@@ -14,8 +14,16 @@ use Illuminate\Http\Request;
 */
 
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return auth()->user();
+// Route::middleware('auth:api')->get('/user', function (Request $request) {
+//     return auth()->user();
+// });
+
+Route.middleware('auth:api')->group(function () {
+    Route::get('/user', function (Request $request) {
+        // 'auth:api' akan memastikan $request->user() terisi
+        return $request->user(); 
+    });
+    Route::post('/scrape-data', [App\Http\Controllers\Api\ScrapeDataController::class, 'store']);
 });
 
 Wave::api();
@@ -24,5 +32,3 @@ Wave::api();
 Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/posts', '\App\Http\Controllers\Api\ApiController@posts');
 });
-
-Route::post('/scrape-data', [App\Http\Controllers\Api\ScrapeDataController::class, 'store'])->middleware('auth:sanctum');
