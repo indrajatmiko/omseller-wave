@@ -18,7 +18,7 @@ use Illuminate\Http\Request;
 //     return auth()->user();
 // });
 
-Route.middleware('auth:api')->group(function () {
+Route::middleware('auth:api')->group(function () {
     Route::get('/user', function (Request $request) {
         // 'auth:api' akan memastikan $request->user() terisi
         return $request->user(); 
