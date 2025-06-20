@@ -25,7 +25,10 @@ Route::middleware('auth:api')->group(function () {
     });
     Route::post('/scrape-data', [App\Http\Controllers\Api\ScrapeDataController::class, 'store']);
     Route::get('/scraped-dates/{campaign_id}', [App\Http\Controllers\Api\ScrapeDataController::class, 'getScrapedDates']);
-
+    
+    // (Baru) Rute Scraper Produk
+    Route::post('/products/scrape', [ProductScrapeController::class, 'store']);
+    Route::get('/products/stats', [ProductScrapeController::class, 'getStats']);
 });
 
 Wave::api();
