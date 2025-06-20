@@ -23,10 +23,12 @@ class ProductScrapeController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'scrapedData' => 'required|array|min:1',
+            'scrapedData' => 'required|array',
             'scrapedData.*.shopee_product_id' => 'required|numeric',
             'scrapedData.*.product_name' => 'required|string',
-            // ... tambahkan validasi lain jika perlu
+            'scrapedData.*.variants' => 'sometimes|array',
+            'scrapedData.*.variants.*.shopee_variant_id' => 'required|numeric',
+            // ... validasi lain jika perlu
         ]);
 
         if ($validator->fails()) {
@@ -36,10 +38,14 @@ class ProductScrapeController extends Controller
         $user = Auth::user();
         $productsCreated = 0;
         $productsUpdated = 0;
+        $variantsCreated = 0;
+        $variantsUpdated = 0;
 
         foreach ($request->scrapedData as $productData) {
             try {
-                DB::transaction(function () use ($user, $productData, &$productsCreated, &$productsUpdated) {
+                DB::transaction(function () use ($user, $productData, &$productsCreated, &$productsUpdated, &$variantsCreated, &$variantsUpdated) {
+                    
+                    // Langkah 1: Update atau buat produk induk
                     $product = Product::updateOrCreate(
                         [
                             'user_id' => $user->id,
@@ -49,7 +55,6 @@ class ProductScrapeController extends Controller
                             'product_name' => $productData['product_name'],
                             'parent_sku' => $productData['parent_sku'],
                             'image_url' => $productData['image_url'],
-                            // (PERBAIKAN) Beri nilai default jika null
                             'total_sales' => $productData['total_sales'] ?? 0,
                             'total_stock' => $productData['total_stock'] ?? 0,
                         ]
@@ -61,12 +66,39 @@ class ProductScrapeController extends Controller
                         $productsUpdated++;
                     }
 
-                    // Hapus varian lama dan buat ulang untuk memastikan sinkronisasi
-                    $product->variants()->delete();
-
+                    // Langkah 2: Sinkronisasi Varian dengan Cerdas
+                    $scrapedVariantIds = [];
                     if (!empty($productData['variants'])) {
-                        $product->variants()->createMany($productData['variants']);
+                        foreach ($productData['variants'] as $variantData) {
+                            $scrapedVariantIds[] = $variantData['shopee_variant_id'];
+
+                            $variant = $product->variants()->updateOrCreate(
+                                [
+                                    // Kunci unik untuk mencari varian
+                                    'shopee_variant_id' => $variantData['shopee_variant_id'],
+                                ],
+                                [
+                                    // Data yang akan diperbarui atau dibuat
+                                    'variant_name' => $variantData['variant_name'],
+                                    'variant_sku' => $variantData['variant_sku'],
+                                    'price' => $variantData['price'],
+                                    'promo_price' => $variantData['promo_price'],
+                                    'stock' => $variantData['stock'],
+                                ]
+                            );
+
+                             if ($variant->wasRecentlyCreated) {
+                                $variantsCreated++;
+                            } else {
+                                $variantsUpdated++;
+                            }
+                        }
                     }
+
+                    // Langkah 3: Hapus varian lama yang tidak ada lagi di data scrape
+                    // Ini menangani kasus jika sebuah varian dihapus dari Shopee
+                    $product->variants()->whereNotIn('shopee_variant_id', $scrapedVariantIds)->delete();
+
                 });
             } catch (Throwable $e) {
                 Log::error('Failed to store product scrape data for user ' . $user->id, [
@@ -79,9 +111,11 @@ class ProductScrapeController extends Controller
         }
 
         return response()->json([
-            'message' => 'Data produk berhasil diproses.',
-            'created' => $productsCreated,
-            'updated' => $productsUpdated,
+            'message' => 'Data produk berhasil disinkronkan.',
+            'products_created' => $productsCreated,
+            'products_updated' => $productsUpdated,
+            'variants_created' => $variantsCreated,
+            'variants_updated' => $variantsUpdated,
         ], 200);
     }
 }
