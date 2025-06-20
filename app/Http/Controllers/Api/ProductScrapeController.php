@@ -49,8 +49,9 @@ class ProductScrapeController extends Controller
                             'product_name' => $productData['product_name'],
                             'parent_sku' => $productData['parent_sku'],
                             'image_url' => $productData['image_url'],
-                            'total_sales' => $productData['total_sales'],
-                            'total_stock' => $productData['total_stock'],
+                            // (PERBAIKAN) Beri nilai default jika null
+                            'total_sales' => $productData['total_sales'] ?? 0,
+                            'total_stock' => $productData['total_stock'] ?? 0,
                         ]
                     );
 
